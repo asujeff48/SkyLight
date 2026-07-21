@@ -1,6 +1,8 @@
-import type { GeoLocation } from '../types'
-import { PRESET_LOCATIONS } from '../types'
+import { useState } from 'react'
+import type { GeoLocation, SkyFilter } from '../types'
+import { PRESET_LOCATIONS, SKY_FILTERS } from '../types'
 import { formatCoords } from '../astronomy'
+import { searchCities, type CityMatch } from '../geocode'
 
 type Props = {
   location: GeoLocation
@@ -9,6 +11,8 @@ type Props = {
   onUseMyLocation: () => void
   when: Date
   onWhenChange: (when: Date) => void
+  skyFilter: SkyFilter
+  onSkyFilterChange: (filter: SkyFilter) => void
 }
 
 function toLocalInputValue(date: Date): string {
@@ -23,7 +27,49 @@ export function LocationPanel({
   onUseMyLocation,
   when,
   onWhenChange,
+  skyFilter,
+  onSkyFilterChange,
 }: Props) {
+  const [cityQuery, setCityQuery] = useState('')
+  const [matches, setMatches] = useState<CityMatch[]>([])
+  const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+
+  const lookUpCity = async () => {
+    const query = cityQuery.trim()
+    if (query.length < 2) {
+      setSearchError('Enter at least 2 letters of a city name.')
+      setMatches([])
+      return
+    }
+
+    setSearching(true)
+    setSearchError(null)
+    try {
+      const results = await searchCities(query)
+      setMatches(results)
+      if (results.length === 0) {
+        setSearchError('No cities found. Try another spelling.')
+      }
+    } catch (err) {
+      setMatches([])
+      setSearchError(err instanceof Error ? err.message : 'City lookup failed.')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  const pickCity = (city: CityMatch) => {
+    onLocationChange({
+      latitude: city.latitude,
+      longitude: city.longitude,
+      label: city.label,
+    })
+    setCityQuery(city.label)
+    setMatches([])
+    setSearchError(null)
+  }
+
   return (
     <div className="panel">
       <div className="panel-row">
@@ -33,7 +79,12 @@ export function LocationPanel({
             value={PRESET_LOCATIONS.find((p) => p.label === location.label)?.label ?? 'custom'}
             onChange={(e) => {
               const preset = PRESET_LOCATIONS.find((p) => p.label === e.target.value)
-              if (preset) onLocationChange(preset)
+              if (preset) {
+                onLocationChange(preset)
+                setCityQuery('')
+                setMatches([])
+                setSearchError(null)
+              }
             }}
           >
             {!PRESET_LOCATIONS.some((p) => p.label === location.label) && (
@@ -59,6 +110,56 @@ export function LocationPanel({
 
       <div className="panel-row">
         <label className="field grow">
+          <span>Find a city</span>
+          <input
+            type="search"
+            name="city"
+            autoComplete="address-level2"
+            placeholder="e.g. Chicago, Mumbai, Cairo"
+            value={cityQuery}
+            onChange={(e) => {
+              setCityQuery(e.target.value)
+              setSearchError(null)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                void lookUpCity()
+              }
+            }}
+          />
+        </label>
+        <button
+          type="button"
+          className="btn ghost"
+          onClick={() => void lookUpCity()}
+          disabled={searching}
+        >
+          {searching ? 'Looking…' : 'Look up'}
+        </button>
+      </div>
+
+      {searchError && <p className="error">{searchError}</p>}
+
+      {matches.length > 0 && (
+        <ul className="city-results" role="listbox" aria-label="City matches">
+          {matches.map((city) => (
+            <li key={city.id}>
+              <button
+                type="button"
+                className="city-result"
+                onClick={() => pickCity(city)}
+              >
+                <span className="city-result-name">{city.label}</span>
+                <span className="city-result-detail">{city.detail}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="panel-row">
+        <label className="field grow">
           <span>Date & time</span>
           <input
             type="datetime-local"
@@ -76,6 +177,23 @@ export function LocationPanel({
         >
           Now
         </button>
+      </div>
+
+      <div className="filter-block">
+        <span className="filter-label">Show</span>
+        <div className="filter-group" role="group" aria-label="Sky object filter">
+          {SKY_FILTERS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className={`filter-btn${skyFilter === option.id ? ' active' : ''}`}
+              aria-pressed={skyFilter === option.id}
+              onClick={() => onSkyFilterChange(option.id)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <p className="coords">{formatCoords(location)}</p>

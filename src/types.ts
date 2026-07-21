@@ -6,6 +6,21 @@ export type GeoLocation = {
 
 export type SkyBodyKind = 'star' | 'planet' | 'moon' | 'sun'
 
+/** What to draw on the sky map. Default view is `all`. */
+export type SkyFilter = 'all' | 'planets' | 'stars'
+
+export const SKY_FILTERS: { id: SkyFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'planets', label: 'Planets Only' },
+  { id: 'stars', label: 'Stars Only' },
+]
+
+export function matchesSkyFilter(object: { kind: SkyBodyKind }, filter: SkyFilter): boolean {
+  if (filter === 'all') return true
+  if (filter === 'stars') return object.kind === 'star'
+  return object.kind === 'planet'
+}
+
 export type DistanceUnit = 'au' | 'km' | 'ly'
 
 export type SkyObject = {

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { computeSkyObjects } from './astronomy'
 import { SkyCanvas } from './components/SkyCanvas'
 import { LocationPanel } from './components/LocationPanel'
-import type { GeoLocation, SkyObject } from './types'
-import { displayName, formatDistance, PRESET_LOCATIONS } from './types'
+import type { GeoLocation, SkyFilter, SkyObject } from './types'
+import { displayName, formatDistance, matchesSkyFilter, PRESET_LOCATIONS } from './types'
 import './App.css'
 
 const DEFAULT_LOCATION = PRESET_LOCATIONS[0]
@@ -14,6 +14,7 @@ export default function App() {
   const [locating, setLocating] = useState(false)
   const [geoError, setGeoError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [skyFilter, setSkyFilter] = useState<SkyFilter>('all')
   const [tick, setTick] = useState(0)
 
   // Keep "live" sky gently updating when viewing "now"
@@ -31,10 +32,11 @@ export default function App() {
   }, [])
 
   const objects = computeSkyObjects(location, when)
+  const visibleObjects = objects.filter((o) => matchesSkyFilter(o, skyFilter))
   void tick
 
   const selected: SkyObject | null =
-    selectedId == null ? null : (objects.find((o) => o.id === selectedId) ?? null)
+    selectedId == null ? null : (visibleObjects.find((o) => o.id === selectedId) ?? null)
 
   const visiblePlanets = objects.filter((o) => o.kind === 'planet' && o.altitude > 0)
   const sun = objects.find((o) => o.kind === 'sun')
@@ -85,7 +87,7 @@ export default function App() {
   return (
     <div className="app">
       <SkyCanvas
-        objects={objects}
+        objects={visibleObjects}
         when={when}
         selectedId={selectedId}
         onSelect={(obj) => setSelectedId(obj?.id ?? null)}
@@ -108,34 +110,56 @@ export default function App() {
           onUseMyLocation={useMyLocation}
           when={when}
           onWhenChange={setWhen}
+          skyFilter={skyFilter}
+          onSkyFilterChange={setSkyFilter}
         />
         {geoError && <p className="error">{geoError}</p>}
 
         <div className="status">
-          <div>
-            <span className="label">Sun</span>
-            <strong>
-              {sun && sun.altitude > 0
-                ? `${sun.altitude.toFixed(0)}° up`
-                : 'Below horizon'}
-            </strong>
-          </div>
-          <div>
-            <span className="label">Moon</span>
-            <strong>
-              {moon && moon.altitude > 0
-                ? `${Math.round((moon.phase ?? 0) * 100)}% lit · ${moon.altitude.toFixed(0)}°`
-                : 'Below horizon'}
-            </strong>
-          </div>
-          <div>
-            <span className="label">Planets up</span>
-            <strong>
-              {visiblePlanets.length
-                ? visiblePlanets.map((p) => displayName(p)).join(', ')
-                : 'None'}
-            </strong>
-          </div>
+          {skyFilter === 'all' && (
+            <>
+              <div>
+                <span className="label">Sun</span>
+                <strong>
+                  {sun && sun.altitude > 0
+                    ? `${sun.altitude.toFixed(0)}° up`
+                    : 'Below horizon'}
+                </strong>
+              </div>
+              <div>
+                <span className="label">Moon</span>
+                <strong>
+                  {moon && moon.altitude > 0
+                    ? `${Math.round((moon.phase ?? 0) * 100)}% lit · ${moon.altitude.toFixed(0)}°`
+                    : 'Below horizon'}
+                </strong>
+              </div>
+              <div>
+                <span className="label">Planets up</span>
+                <strong>
+                  {visiblePlanets.length
+                    ? visiblePlanets.map((p) => displayName(p)).join(', ')
+                    : 'None'}
+                </strong>
+              </div>
+            </>
+          )}
+          {skyFilter === 'planets' && (
+            <div>
+              <span className="label">Planets up</span>
+              <strong>
+                {visiblePlanets.length
+                  ? visiblePlanets.map((p) => displayName(p)).join(', ')
+                  : 'None'}
+              </strong>
+            </div>
+          )}
+          {skyFilter === 'stars' && (
+            <div>
+              <span className="label">Showing</span>
+              <strong>Stars only</strong>
+            </div>
+          )}
         </div>
 
         {selected && (
