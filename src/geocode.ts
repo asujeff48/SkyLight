@@ -35,7 +35,7 @@ export async function searchCities(query: string, limit = 6): Promise<CityMatch[
 
   const url = new URL('https://geocoding-api.open-meteo.com/v1/search')
   url.searchParams.set('name', trimmed)
-  url.searchParams.set('count', String(limit))
+  url.searchParams.set('count', String(Math.max(limit * 3, 12)))
   url.searchParams.set('language', 'en')
   url.searchParams.set('format', 'json')
 
@@ -47,17 +47,19 @@ export async function searchCities(query: string, limit = 6): Promise<CityMatch[
   const data = (await response.json()) as OpenMeteoResponse
   const results = data.results ?? []
 
-  // Prefer more populous matches so "major cities" float to the top.
-  return [...results]
-    .sort((a, b) => (b.population ?? 0) - (a.population ?? 0))
-    .map((result) => {
-      const { label, detail } = formatCityLabel(result)
-      return {
-        id: result.id,
-        latitude: result.latitude,
-        longitude: result.longitude,
-        label,
-        detail,
-      }
-    })
+  // Prefer major cities: drop tiny places when larger matches exist.
+  const sorted = [...results].sort((a, b) => (b.population ?? 0) - (a.population ?? 0))
+  const major = sorted.filter((r) => (r.population ?? 0) >= 50_000)
+  const chosen = major.length > 0 ? major : sorted
+
+  return chosen.slice(0, limit).map((result) => {
+    const { label, detail } = formatCityLabel(result)
+    return {
+      id: result.id,
+      latitude: result.latitude,
+      longitude: result.longitude,
+      label,
+      detail,
+    }
+  })
 }
