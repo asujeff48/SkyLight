@@ -160,7 +160,7 @@ export function SkyCanvas({ objects, when, selectedId, onSelect }: Props) {
             ctx.stroke()
           }
 
-          if (selected || obj.magnitude < 1) {
+          if ((selected || obj.magnitude < 1) && obj.name) {
             ctx.fillStyle = 'rgba(240, 246, 255, 0.85)'
             ctx.font = '500 11px Sora, sans-serif'
             ctx.textAlign = 'left'
@@ -178,7 +178,7 @@ export function SkyCanvas({ objects, when, selectedId, onSelect }: Props) {
           ctx.shadowBlur = 0
           ctx.globalAlpha = 1
 
-          if (selected || (obj.name !== 'Star' && obj.magnitude < 1.2)) {
+          if (obj.name && (selected || obj.magnitude < 1.2)) {
             ctx.fillStyle = 'rgba(220, 230, 245, 0.75)'
             ctx.font = '400 11px Sora, sans-serif'
             ctx.textAlign = 'left'

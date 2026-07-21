@@ -6,9 +6,12 @@ export type GeoLocation = {
 
 export type SkyBodyKind = 'star' | 'planet' | 'moon' | 'sun'
 
+export type DistanceUnit = 'au' | 'km' | 'ly'
+
 export type SkyObject = {
   id: string
-  name: string
+  /** Display name when known; null for unnamed field stars */
+  name: string | null
   kind: SkyBodyKind
   altitude: number
   azimuth: number
@@ -16,6 +19,11 @@ export type SkyObject = {
   /** 0–1 illuminated fraction for Moon; unused for others */
   phase?: number
   color: string
+  /** Distance from Earth when known */
+  distance?: {
+    value: number
+    unit: DistanceUnit
+  }
 }
 
 export const PRESET_LOCATIONS: GeoLocation[] = [
@@ -30,3 +38,42 @@ export const PRESET_LOCATIONS: GeoLocation[] = [
   { latitude: 64.1466, longitude: -21.9426, label: 'Reykjavík' },
   { latitude: -33.9249, longitude: 18.4241, label: 'Cape Town' },
 ]
+
+const AU_KM = 149_597_870.7
+
+export function displayName(object: SkyObject): string {
+  if (object.name) return object.name
+  if (object.kind === 'star') return 'Unnamed star'
+  return 'Unknown'
+}
+
+export function formatDistance(object: SkyObject): string | null {
+  if (!object.distance) return null
+  const { value, unit } = object.distance
+
+  if (unit === 'ly') {
+    if (value >= 1000) return `${(value / 1000).toFixed(1)} thousand light-years`
+    if (value >= 100) return `${Math.round(value)} light-years`
+    if (value >= 10) return `${value.toFixed(0)} light-years`
+    return `${value.toFixed(1)} light-years`
+  }
+
+  if (unit === 'km') {
+    if (value >= 1_000_000) {
+      return `${(value / 1_000_000).toFixed(2)} million km`
+    }
+    return `${Math.round(value).toLocaleString('en-US')} km`
+  }
+
+  // AU — also show approximate km for intuition
+  const km = value * AU_KM
+  const auLabel =
+    value >= 10 ? `${value.toFixed(1)} AU` : value >= 1 ? `${value.toFixed(2)} AU` : `${value.toFixed(3)} AU`
+  if (km >= 1_000_000_000) {
+    return `${auLabel} · ${(km / 1_000_000_000).toFixed(2)} billion km`
+  }
+  if (km >= 1_000_000) {
+    return `${auLabel} · ${(km / 1_000_000).toFixed(1)} million km`
+  }
+  return `${auLabel} · ${Math.round(km).toLocaleString('en-US')} km`
+}

@@ -3,7 +3,7 @@ import { computeSkyObjects } from './astronomy'
 import { SkyCanvas } from './components/SkyCanvas'
 import { LocationPanel } from './components/LocationPanel'
 import type { GeoLocation, SkyObject } from './types'
-import { PRESET_LOCATIONS } from './types'
+import { displayName, formatDistance, PRESET_LOCATIONS } from './types'
 import './App.css'
 
 const DEFAULT_LOCATION = PRESET_LOCATIONS[0]
@@ -13,7 +13,7 @@ export default function App() {
   const [when, setWhen] = useState(() => new Date())
   const [locating, setLocating] = useState(false)
   const [geoError, setGeoError] = useState<string | null>(null)
-  const [selected, setSelected] = useState<SkyObject | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
 
   // Keep "live" sky gently updating when viewing "now"
@@ -32,6 +32,9 @@ export default function App() {
 
   const objects = computeSkyObjects(location, when)
   void tick
+
+  const selected: SkyObject | null =
+    selectedId == null ? null : (objects.find((o) => o.id === selectedId) ?? null)
 
   const visiblePlanets = objects.filter((o) => o.kind === 'planet' && o.altitude > 0)
   const sun = objects.find((o) => o.kind === 'sun')
@@ -84,8 +87,8 @@ export default function App() {
       <SkyCanvas
         objects={objects}
         when={when}
-        selectedId={selected?.id ?? null}
-        onSelect={setSelected}
+        selectedId={selectedId}
+        onSelect={(obj) => setSelectedId(obj?.id ?? null)}
       />
 
       <header className="hero">
@@ -129,7 +132,7 @@ export default function App() {
             <span className="label">Planets up</span>
             <strong>
               {visiblePlanets.length
-                ? visiblePlanets.map((p) => p.name).join(', ')
+                ? visiblePlanets.map((p) => displayName(p)).join(', ')
                 : 'None'}
             </strong>
           </div>
@@ -138,15 +141,28 @@ export default function App() {
         {selected && (
           <div className="selection" role="status">
             <span className="kind">{selected.kind}</span>
-            <strong>{selected.name}</strong>
-            <span>
-              Alt {selected.altitude.toFixed(1)}° · Az {selected.azimuth.toFixed(1)}°
-            </span>
+            <strong>{displayName(selected)}</strong>
+            <dl className="selection-facts">
+              <div>
+                <dt>Name</dt>
+                <dd>{selected.name ? selected.name : 'Not known'}</dd>
+              </div>
+              <div>
+                <dt>Distance from Earth</dt>
+                <dd>{formatDistance(selected) ?? 'Not known'}</dd>
+              </div>
+              <div>
+                <dt>Position</dt>
+                <dd>
+                  Alt {selected.altitude.toFixed(1)}° · Az {selected.azimuth.toFixed(1)}°
+                </dd>
+              </div>
+            </dl>
           </div>
         )}
       </aside>
 
-      <p className="hint">Tap a star or planet · dome centered on zenith</p>
+      <p className="hint">Tap a star or planet for name &amp; distance</p>
     </div>
   )
 }

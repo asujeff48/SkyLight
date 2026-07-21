@@ -8,7 +8,10 @@ import {
   type AstroTime,
 } from 'astronomy-engine'
 import { BRIGHT_STARS } from './data/stars'
+import { STAR_DISTANCES_LY } from './data/starDistances'
 import type { GeoLocation, SkyObject } from './types'
+
+const AU_KM = 149_597_870.7
 
 const PLANETS: { body: Body; name: string; color: string; magnitude: number }[] = [
   { body: Body.Mercury, name: 'Mercury', color: '#c9b8a0', magnitude: 0.2 },
@@ -38,6 +41,10 @@ function toHorizontal(
   return { altitude: hor.altitude, azimuth: hor.azimuth }
 }
 
+function geoDistanceAu(body: Body, time: AstroTime): number {
+  return Illumination(body, time).geo_dist
+}
+
 export function computeSkyObjects(
   location: GeoLocation,
   when: Date,
@@ -49,14 +56,17 @@ export function computeSkyObjects(
   for (const star of BRIGHT_STARS) {
     const { altitude, azimuth } = toHorizontal(star.ra, star.dec, time, observer)
     if (altitude < -2) continue
+    const name = star.name ?? null
+    const ly = name ? STAR_DISTANCES_LY[name] : undefined
     objects.push({
       id: `star-${star.ra}-${star.dec}-${star.mag}`,
-      name: star.name ?? 'Star',
+      name,
       kind: 'star',
       altitude,
       azimuth,
       magnitude: star.mag,
       color: starColor(star.mag),
+      distance: ly != null ? { value: ly, unit: 'ly' } : undefined,
     })
   }
 
@@ -64,20 +74,23 @@ export function computeSkyObjects(
     const equ = Equator(planet.body, time, observer, true, true)
     const { altitude, azimuth } = toHorizontal(equ.ra, equ.dec, time, observer)
     if (altitude < -5) continue
+    const illum = Illumination(planet.body, time)
     objects.push({
       id: `planet-${planet.name}`,
       name: planet.name,
       kind: 'planet',
       altitude,
       azimuth,
-      magnitude: planet.magnitude,
+      magnitude: illum.mag,
       color: planet.color,
+      distance: { value: illum.geo_dist, unit: 'au' },
     })
   }
 
   {
     const equ = Equator(Body.Sun, time, observer, true, true)
     const { altitude, azimuth } = toHorizontal(equ.ra, equ.dec, time, observer)
+    const au = geoDistanceAu(Body.Sun, time)
     objects.push({
       id: 'sun',
       name: 'Sun',
@@ -86,6 +99,7 @@ export function computeSkyObjects(
       azimuth,
       magnitude: -26.7,
       color: '#f2e6c4',
+      distance: { value: au, unit: 'au' },
     })
   }
 
@@ -102,6 +116,7 @@ export function computeSkyObjects(
       magnitude: -12.0,
       phase: illum.phase_fraction,
       color: '#e8eef5',
+      distance: { value: illum.geo_dist * AU_KM, unit: 'km' },
     })
   }
 

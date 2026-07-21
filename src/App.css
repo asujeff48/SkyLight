@@ -238,9 +238,28 @@ select {
   font-weight: 600;
 }
 
-.selection span:last-child {
-  font-size: 0.8rem;
+.selection-facts {
+  margin: 0.55rem 0 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.selection-facts div {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.selection-facts dt {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--mist-dim);
+}
+
+.selection-facts dd {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--mist);
 }
 
 .error {
