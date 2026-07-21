@@ -141,22 +141,44 @@ select {
   font-size: 0.68rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--mist-dim);
+  color: rgba(215, 224, 239, 0.82);
 }
 
 .field select,
 .field input {
   width: 100%;
   padding: 0.55rem 0.65rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--line);
+  color: #f2f6fc;
+  background: #121a2e;
+  border: 1px solid rgba(180, 200, 230, 0.38);
   border-radius: 0;
   outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.field select {
+  background-image: linear-gradient(45deg, transparent 50%, #f2f6fc 50%),
+    linear-gradient(135deg, #f2f6fc 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) calc(50% - 2px),
+    calc(100% - 11px) calc(50% - 2px);
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 1.75rem;
+}
+
+.field select option {
+  color: #f2f6fc;
+  background-color: #121a2e;
 }
 
 .field select:focus,
 .field input:focus {
-  border-color: rgba(232, 201, 155, 0.55);
+  border-color: rgba(232, 201, 155, 0.7);
+  background-color: #182238;
 }
 
 .btn {

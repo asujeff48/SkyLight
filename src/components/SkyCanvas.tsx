@@ -55,6 +55,36 @@ function drawSun(ctx: CanvasRenderingContext2D, x: number, y: number, radius: nu
   ctx.fill()
 }
 
+/** Named bright bodies that should keep a readable on-sky label. */
+function shouldShowLabel(obj: SkyObject, selected: boolean): boolean {
+  if (!obj.name) return false
+  if (selected) return true
+  if (obj.kind === 'sun' || obj.kind === 'moon') return true
+  // Label every planet above the horizon — there are few of them.
+  if (obj.kind === 'planet') return true
+  // Named stars brighter than ~mag 2 (Sirius through Polaris, Deneb, etc.)
+  return obj.magnitude < 2.0
+}
+
+function drawLabel(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  emphasis: boolean,
+) {
+  ctx.save()
+  ctx.font = `${emphasis ? '600' : '500'} 11px Sora, sans-serif`
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  ctx.lineWidth = 3
+  ctx.strokeStyle = 'rgba(5, 9, 20, 0.72)'
+  ctx.strokeText(text, x, y)
+  ctx.fillStyle = emphasis ? 'rgba(248, 250, 255, 0.95)' : 'rgba(230, 238, 250, 0.88)'
+  ctx.fillText(text, x, y)
+  ctx.restore()
+}
+
 export function SkyCanvas({ objects, when, selectedId, onSelect }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const objectsRef = useRef(objects)
@@ -127,6 +157,7 @@ export function SkyCanvas({ objects, when, selectedId, onSelect }: Props) {
       ctx.fillText('E', width / 2 + domeR + 10, height / 2 + 4)
 
       const sorted = [...objectsRef.current].sort((a, b) => b.magnitude - a.magnitude)
+      const labels: { text: string; x: number; y: number; emphasis: boolean }[] = []
 
       for (const obj of sorted) {
         const { x, y, visible } = projectToCanvas(obj.altitude, obj.azimuth, width, height)
@@ -136,14 +167,18 @@ export function SkyCanvas({ objects, when, selectedId, onSelect }: Props) {
         const twinkle =
           obj.kind === 'star' ? 0.75 + 0.25 * Math.sin(frame * 0.04 + obj.azimuth) : 1
 
+        let markerRadius = 3
+
         if (obj.kind === 'sun') {
-          drawSun(ctx, x, y, 18)
+          markerRadius = 18
+          drawSun(ctx, x, y, markerRadius)
         } else if (obj.kind === 'moon') {
-          drawMoon(ctx, x, y, 14, obj.phase ?? 0.5)
+          markerRadius = 14
+          drawMoon(ctx, x, y, markerRadius, obj.phase ?? 0.5)
         } else if (obj.kind === 'planet') {
-          const r = obj.magnitude < -1 ? 5.5 : obj.magnitude < 1 ? 4.2 : 3.2
+          markerRadius = obj.magnitude < -1 ? 5.5 : obj.magnitude < 1 ? 4.2 : 3.2
           ctx.beginPath()
-          ctx.arc(x, y, r + (selected ? 2 : 0), 0, Math.PI * 2)
+          ctx.arc(x, y, markerRadius + (selected ? 2 : 0), 0, Math.PI * 2)
           ctx.fillStyle = obj.color
           ctx.shadowColor = obj.color
           ctx.shadowBlur = 12
@@ -156,20 +191,13 @@ export function SkyCanvas({ objects, when, selectedId, onSelect }: Props) {
             ctx.strokeStyle = 'rgba(212, 196, 154, 0.7)'
             ctx.lineWidth = 1.2
             ctx.beginPath()
-            ctx.ellipse(x, y, r * 2.2, r * 0.7, -0.4, 0, Math.PI * 2)
+            ctx.ellipse(x, y, markerRadius * 2.2, markerRadius * 0.7, -0.4, 0, Math.PI * 2)
             ctx.stroke()
           }
-
-          if ((selected || obj.magnitude < 1) && obj.name) {
-            ctx.fillStyle = 'rgba(240, 246, 255, 0.85)'
-            ctx.font = '500 11px Sora, sans-serif'
-            ctx.textAlign = 'left'
-            ctx.fillText(obj.name, x + r + 6, y + 4)
-          }
         } else {
-          const size = Math.max(0.6, 3.2 - obj.magnitude * 0.55)
+          markerRadius = Math.max(0.6, 3.2 - obj.magnitude * 0.55)
           ctx.beginPath()
-          ctx.arc(x, y, size, 0, Math.PI * 2)
+          ctx.arc(x, y, markerRadius, 0, Math.PI * 2)
           ctx.fillStyle = obj.color
           ctx.globalAlpha = twinkle
           ctx.shadowColor = obj.color
@@ -177,13 +205,6 @@ export function SkyCanvas({ objects, when, selectedId, onSelect }: Props) {
           ctx.fill()
           ctx.shadowBlur = 0
           ctx.globalAlpha = 1
-
-          if (obj.name && (selected || obj.magnitude < 1.2)) {
-            ctx.fillStyle = 'rgba(220, 230, 245, 0.75)'
-            ctx.font = '400 11px Sora, sans-serif'
-            ctx.textAlign = 'left'
-            ctx.fillText(obj.name, x + size + 5, y + 3)
-          }
         }
 
         if (selected && obj.kind !== 'sun') {
@@ -193,6 +214,21 @@ export function SkyCanvas({ objects, when, selectedId, onSelect }: Props) {
           ctx.lineWidth = 1
           ctx.stroke()
         }
+
+        if (obj.name && shouldShowLabel(obj, selected)) {
+          const emphasis = selected || obj.kind === 'sun' || obj.kind === 'moon' || obj.kind === 'planet'
+          labels.push({
+            text: obj.name,
+            x: x + markerRadius + 6,
+            y,
+            emphasis,
+          })
+        }
+      }
+
+      // Draw labels after markers so names stay readable over nearby stars.
+      for (const label of labels) {
+        drawLabel(ctx, label.text, label.x, label.y, label.emphasis)
       }
 
       raf = requestAnimationFrame(draw)
