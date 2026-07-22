@@ -311,34 +311,29 @@ select {
 
 .status {
   display: grid;
-  gap: 0.3rem;
-  padding: 0.55rem 0.75rem;
+  gap: 0.2rem;
+  padding: 0.5rem 0.7rem;
   background: rgba(8, 14, 28, 0.55);
   border: 1px solid var(--line);
   backdrop-filter: blur(10px);
 }
 
-.status-row {
+.status-line {
+  margin: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 1rem;
   align-items: baseline;
+  gap: 0.2rem 0.35rem;
   min-width: 0;
+  line-height: 1.35;
 }
 
-.status-item {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.35rem;
-  min-width: 0;
-}
-
-.status-item.wide {
-  flex: 1;
+.status-sep {
+  color: rgba(215, 224, 239, 0.45);
+  margin: 0 0.15rem;
 }
 
 .status .label {
-  flex-shrink: 0;
   font-size: 0.62rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -348,13 +343,6 @@ select {
 .status strong {
   font-size: 0.78rem;
   font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.status-item.wide strong {
-  white-space: normal;
 }
 
 .selection {

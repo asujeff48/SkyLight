@@ -120,55 +120,47 @@ export default function App() {
         <div className="status">
           {skyFilter === 'all' && (
             <>
-              <div className="status-row">
-                <span className="status-item">
-                  <span className="label">Sun</span>
-                  <strong>
-                    {sun && sun.altitude > 0
-                      ? `${sun.altitude.toFixed(0)}° up`
-                      : 'Below'}
-                  </strong>
+              <p className="status-line">
+                <span className="label">Sun</span>{' '}
+                <strong>
+                  {sun && sun.altitude > 0
+                    ? `${sun.altitude.toFixed(0)}° up`
+                    : 'Below'}
+                </strong>
+                <span className="status-sep" aria-hidden="true">
+                  ·
                 </span>
-                <span className="status-item">
-                  <span className="label">Moon</span>
-                  <strong>
-                    {moon && moon.altitude > 0
-                      ? `${Math.round((moon.phase ?? 0) * 100)}% · ${moon.altitude.toFixed(0)}°`
-                      : 'Below'}
-                  </strong>
-                </span>
-              </div>
-              <div className="status-row">
-                <span className="status-item wide">
-                  <span className="label">Planets</span>
-                  <strong>
-                    {visiblePlanets.length
-                      ? visiblePlanets.map((p) => displayName(p)).join(', ')
-                      : 'None'}
-                  </strong>
-                </span>
-              </div>
-            </>
-          )}
-          {skyFilter === 'planets' && (
-            <div className="status-row">
-              <span className="status-item wide">
-                <span className="label">Planets</span>
+                <span className="label">Moon</span>{' '}
+                <strong>
+                  {moon && moon.altitude > 0
+                    ? `${Math.round((moon.phase ?? 0) * 100)}% · ${moon.altitude.toFixed(0)}°`
+                    : 'Below'}
+                </strong>
+              </p>
+              <p className="status-line">
+                <span className="label">Planets</span>{' '}
                 <strong>
                   {visiblePlanets.length
                     ? visiblePlanets.map((p) => displayName(p)).join(', ')
                     : 'None'}
                 </strong>
-              </span>
-            </div>
+              </p>
+            </>
+          )}
+          {skyFilter === 'planets' && (
+            <p className="status-line">
+              <span className="label">Planets</span>{' '}
+              <strong>
+                {visiblePlanets.length
+                  ? visiblePlanets.map((p) => displayName(p)).join(', ')
+                  : 'None'}
+              </strong>
+            </p>
           )}
           {skyFilter === 'stars' && (
-            <div className="status-row">
-              <span className="status-item wide">
-                <span className="label">Showing</span>
-                <strong>Stars only</strong>
-              </span>
-            </div>
+            <p className="status-line">
+              <span className="label">Showing</span> <strong>Stars only</strong>
+            </p>
           )}
         </div>
 
