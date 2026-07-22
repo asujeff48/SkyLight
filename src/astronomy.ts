@@ -5,11 +5,21 @@ import {
   Illumination,
   MakeTime,
   Observer,
+  SearchRiseSet,
   type AstroTime,
 } from 'astronomy-engine'
 import { BRIGHT_STARS } from './data/stars'
 import { STAR_DISTANCES_LY } from './data/starDistances'
 import type { GeoLocation, SkyObject } from './types'
+
+export type SunTimes = {
+  sunrise: Date | null
+  sunset: Date | null
+  /** True when the Sun stays up all day at this location/date */
+  polarDay: boolean
+  /** True when the Sun stays down all day at this location/date */
+  polarNight: boolean
+}
 
 const AU_KM = 149_597_870.7
 
@@ -154,6 +164,116 @@ export function formatCoords(location: GeoLocation): string {
   const ns = location.latitude >= 0 ? 'N' : 'S'
   const ew = location.longitude >= 0 ? 'E' : 'W'
   return `${Math.abs(location.latitude).toFixed(2)}°${ns} · ${Math.abs(location.longitude).toFixed(2)}°${ew}`
+}
+
+function partValue(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes): string {
+  return parts.find((p) => p.type === type)?.value ?? '0'
+}
+
+/** UTC instant for local midnight on the calendar day of `when` in `timeZone`. */
+export function startOfLocalDay(when: Date, timeZone: string): Date {
+  const dayFmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  const ymd = dayFmt.format(when) // YYYY-MM-DD
+  const [year, month, day] = ymd.split('-').map(Number)
+
+  const localPartsFmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  })
+
+  // Refine UTC probe until it lands on local 00:00:00 for that calendar day.
+  let probe = new Date(Date.UTC(year, month - 1, day, 12, 0, 0))
+  for (let i = 0; i < 4; i++) {
+    const parts = localPartsFmt.formatToParts(probe)
+    const localAsUtc = Date.UTC(
+      Number(partValue(parts, 'year')),
+      Number(partValue(parts, 'month')) - 1,
+      Number(partValue(parts, 'day')),
+      Number(partValue(parts, 'hour')),
+      Number(partValue(parts, 'minute')),
+      Number(partValue(parts, 'second')),
+    )
+    const offset = localAsUtc - probe.getTime()
+    const targetLocalAsUtc = Date.UTC(year, month - 1, day, 0, 0, 0)
+    probe = new Date(targetLocalAsUtc - offset)
+  }
+  return probe
+}
+
+function sameLocalDay(a: Date, b: Date, timeZone: string): boolean {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  return fmt.format(a) === fmt.format(b)
+}
+
+/** Sunrise/sunset for the local calendar day of `when` at `location`. */
+export function computeSunTimes(location: GeoLocation, when: Date): SunTimes {
+  const timeZone =
+    location.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC'
+  const observer = new Observer(location.latitude, location.longitude, 0)
+  const dayStart = startOfLocalDay(when, timeZone)
+
+  const rise = SearchRiseSet(Body.Sun, observer, +1, dayStart, 1.2)
+  const set = SearchRiseSet(Body.Sun, observer, -1, dayStart, 1.2)
+
+  const sunrise = rise && sameLocalDay(rise.date, when, timeZone) ? rise.date : null
+  const sunset = set && sameLocalDay(set.date, when, timeZone) ? set.date : null
+
+  // If neither event lands on this local day, classify polar day vs night via noon altitude.
+  if (!sunrise && !sunset) {
+    const noon = new Date(dayStart.getTime() + 12 * 60 * 60 * 1000)
+    const noonTime = MakeTime(noon)
+    const equ = Equator(Body.Sun, noonTime, observer, true, true)
+    const { altitude } = toHorizontal(equ.ra, equ.dec, noonTime, observer)
+    return {
+      sunrise: null,
+      sunset: null,
+      polarDay: altitude > 0,
+      polarNight: altitude <= 0,
+    }
+  }
+
+  return {
+    sunrise,
+    sunset,
+    polarDay: false,
+    polarNight: false,
+  }
+}
+
+export function formatLocalTime(date: Date, timeZone?: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone: timeZone || undefined,
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date)
+}
+
+export function formatSunTimesSummary(location: GeoLocation, when: Date): string {
+  const times = computeSunTimes(location, when)
+  const tz = location.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+
+  if (times.polarDay) return 'Sun above horizon all day'
+  if (times.polarNight) return 'Sun below horizon all day'
+
+  const rise = times.sunrise ? formatLocalTime(times.sunrise, tz) : '—'
+  const set = times.sunset ? formatLocalTime(times.sunset, tz) : '—'
+  return `Sunrise ${rise} · Sunset ${set}`
 }
 
 export function skyTone(when: Date, sunAltitude: number): {

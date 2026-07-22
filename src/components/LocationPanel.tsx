@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { GeoLocation, SkyFilter } from '../types'
 import { PRESET_LOCATIONS, SKY_FILTERS } from '../types'
-import { formatCoords } from '../astronomy'
+import { formatCoords, formatSunTimesSummary } from '../astronomy'
 import { searchCities, type CityMatch } from '../geocode'
 
 type Props = {
@@ -64,6 +64,7 @@ export function LocationPanel({
       latitude: city.latitude,
       longitude: city.longitude,
       label: city.label,
+      timeZone: city.timeZone,
     })
     setCityQuery(city.label)
     setMatches([])
@@ -197,6 +198,7 @@ export function LocationPanel({
       </div>
 
       <p className="coords">{formatCoords(location)}</p>
+      <p className="sun-times">{formatSunTimesSummary(location, when)}</p>
     </div>
   )
 }

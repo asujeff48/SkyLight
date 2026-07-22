@@ -55,6 +55,7 @@ export default function App() {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
           label: 'My location',
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         })
         setLocating(false)
       },
@@ -76,6 +77,7 @@ export default function App() {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
           label: 'My location',
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         })
         setLocating(false)
       },

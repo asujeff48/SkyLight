@@ -2,6 +2,8 @@ export type GeoLocation = {
   latitude: number
   longitude: number
   label: string
+  /** IANA timezone when known — used for sunrise/sunset local times */
+  timeZone?: string
 }
 
 export type SkyBodyKind = 'star' | 'planet' | 'moon' | 'sun'
@@ -42,16 +44,16 @@ export type SkyObject = {
 }
 
 export const PRESET_LOCATIONS: GeoLocation[] = [
-  { latitude: 40.7128, longitude: -74.006, label: 'New York' },
-  { latitude: 51.5074, longitude: -0.1278, label: 'London' },
-  { latitude: 35.6762, longitude: 139.6503, label: 'Tokyo' },
-  { latitude: -33.8688, longitude: 151.2093, label: 'Sydney' },
-  { latitude: 48.8566, longitude: 2.3522, label: 'Paris' },
-  { latitude: -22.9068, longitude: -43.1729, label: 'Rio de Janeiro' },
-  { latitude: 19.4326, longitude: -99.1332, label: 'Mexico City' },
-  { latitude: 1.3521, longitude: 103.8198, label: 'Singapore' },
-  { latitude: 64.1466, longitude: -21.9426, label: 'Reykjavík' },
-  { latitude: -33.9249, longitude: 18.4241, label: 'Cape Town' },
+  { latitude: 40.7128, longitude: -74.006, label: 'New York', timeZone: 'America/New_York' },
+  { latitude: 51.5074, longitude: -0.1278, label: 'London', timeZone: 'Europe/London' },
+  { latitude: 35.6762, longitude: 139.6503, label: 'Tokyo', timeZone: 'Asia/Tokyo' },
+  { latitude: -33.8688, longitude: 151.2093, label: 'Sydney', timeZone: 'Australia/Sydney' },
+  { latitude: 48.8566, longitude: 2.3522, label: 'Paris', timeZone: 'Europe/Paris' },
+  { latitude: -22.9068, longitude: -43.1729, label: 'Rio de Janeiro', timeZone: 'America/Sao_Paulo' },
+  { latitude: 19.4326, longitude: -99.1332, label: 'Mexico City', timeZone: 'America/Mexico_City' },
+  { latitude: 1.3521, longitude: 103.8198, label: 'Singapore', timeZone: 'Asia/Singapore' },
+  { latitude: 64.1466, longitude: -21.9426, label: 'Reykjavík', timeZone: 'Atlantic/Reykjavik' },
+  { latitude: -33.9249, longitude: 18.4241, label: 'Cape Town', timeZone: 'Africa/Johannesburg' },
 ]
 
 const AU_KM = 149_597_870.7

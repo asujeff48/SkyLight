@@ -8,6 +8,7 @@ type OpenMeteoResult = {
   country?: string
   admin1?: string
   population?: number
+  timezone?: string
 }
 
 type OpenMeteoResponse = {
@@ -60,6 +61,7 @@ export async function searchCities(query: string, limit = 6): Promise<CityMatch[
       longitude: result.longitude,
       label,
       detail,
+      timeZone: result.timezone,
     }
   })
 }

@@ -214,6 +214,14 @@ select {
   color: var(--mist-dim);
 }
 
+.sun-times {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #f2f6fc;
+  letter-spacing: 0.01em;
+}
+
 .city-results {
   list-style: none;
   margin: 0 0 0.65rem;
