@@ -98,10 +98,12 @@ export default function App() {
 
       <header className="hero">
         <p className="brand">SkyLight</p>
-        <h1>The sky above you</h1>
+        <h1>
+          The sky above <span className="place-name">{location.label}</span>
+        </h1>
         <p className="lede">
-          Planets, stars, moon, and sun drawn for {location.label} — right now, or any moment
-          you choose.
+          Planets, stars, moon, and sun from this viewpoint — right now, or any moment you
+          choose.
         </p>
       </header>
 
