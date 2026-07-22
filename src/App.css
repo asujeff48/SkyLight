@@ -156,27 +156,19 @@ select {
   background: rgba(20, 32, 56, 0.92);
 }
 
-.pan-left {
+.pan-horizontal {
+  position: absolute;
   left: clamp(0.5rem, 1.5vw, 1rem);
   top: 50%;
   transform: translateY(-50%);
+  display: flex;
+  gap: 0.3rem;
+  pointer-events: none;
 }
 
-.pan-right {
-  right: clamp(0.5rem, 1.5vw, 1rem);
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-@media (min-width: 721px) {
-  /* Keep clear of the floating location panel on the right. */
-  .pan-right {
-    right: min(24rem, calc(42vw + 0.75rem));
-  }
-
-  .pan-up {
-    left: calc(50% - min(11rem, 21vw));
-  }
+.pan-horizontal .pan-btn {
+  position: static;
+  transform: none;
 }
 
 .pan-up {

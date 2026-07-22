@@ -764,36 +764,38 @@ export function SkyCanvas({
 
       {isZoomed && (
         <div className="pan-controls" aria-label="Sky pan">
-          <button
-            type="button"
-            className="pan-btn pan-left"
-            aria-label="Pan left"
-            title="Pan left (or Shift+scroll)"
-            disabled={!panLimits.canLeft}
-            onPointerDown={(e) => {
-              if (e.button !== 0 || !panLimits.canLeft) return
-              e.preventDefault()
-              e.stopPropagation()
-              startEdgePan(1, 0)
-            }}
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            className="pan-btn pan-right"
-            aria-label="Pan right"
-            title="Pan right (or Shift+scroll)"
-            disabled={!panLimits.canRight}
-            onPointerDown={(e) => {
-              if (e.button !== 0 || !panLimits.canRight) return
-              e.preventDefault()
-              e.stopPropagation()
-              startEdgePan(-1, 0)
-            }}
-          >
-            ›
-          </button>
+          <div className="pan-horizontal" role="group" aria-label="Side-to-side pan">
+            <button
+              type="button"
+              className="pan-btn pan-left"
+              aria-label="Pan left"
+              title="Pan left (or Shift+scroll)"
+              disabled={!panLimits.canLeft}
+              onPointerDown={(e) => {
+                if (e.button !== 0 || !panLimits.canLeft) return
+                e.preventDefault()
+                e.stopPropagation()
+                startEdgePan(1, 0)
+              }}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="pan-btn pan-right"
+              aria-label="Pan right"
+              title="Pan right (or Shift+scroll)"
+              disabled={!panLimits.canRight}
+              onPointerDown={(e) => {
+                if (e.button !== 0 || !panLimits.canRight) return
+                e.preventDefault()
+                e.stopPropagation()
+                startEdgePan(-1, 0)
+              }}
+            >
+              ›
+            </button>
+          </div>
           <button
             type="button"
             className="pan-btn pan-up"
