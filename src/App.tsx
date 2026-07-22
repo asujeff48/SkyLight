@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { computeSkyObjects } from './astronomy'
 import { SkyCanvas } from './components/SkyCanvas'
 import { LocationPanel } from './components/LocationPanel'
@@ -7,6 +7,17 @@ import { displayName, formatDistance, matchesSkyFilter, PRESET_LOCATIONS } from 
 import './App.css'
 
 const DEFAULT_LOCATION = PRESET_LOCATIONS[0]
+const MOTION_SPAN_MS = 6 * 60 * 60 * 1000
+/** Wall-clock length of one full 6-hour sky replay. */
+const MOTION_CYCLE_MS = 16_000
+
+function formatMotionClock(date: Date, timeZone?: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: timeZone || undefined,
+  }).format(date)
+}
 
 export default function App() {
   const [location, setLocation] = useState<GeoLocation>(DEFAULT_LOCATION)
@@ -16,9 +27,12 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [skyFilter, setSkyFilter] = useState<SkyFilter>('all')
   const [tick, setTick] = useState(0)
+  const [motionOn, setMotionOn] = useState(false)
+  const [motionProgress, setMotionProgress] = useState(0)
 
-  // Keep "live" sky gently updating when viewing "now"
+  // Keep "live" sky gently updating when viewing "now" (paused during motion)
   useEffect(() => {
+    if (motionOn) return
     const id = window.setInterval(() => {
       setWhen((prev) => {
         const age = Date.now() - prev.getTime()
@@ -29,9 +43,41 @@ export default function App() {
       setTick((t) => t + 1)
     }, 30_000)
     return () => window.clearInterval(id)
-  }, [])
+  }, [motionOn])
 
-  const objects = computeSkyObjects(location, when)
+  useEffect(() => {
+    if (!motionOn) {
+      setMotionProgress(0)
+      return
+    }
+
+    let raf = 0
+    let lastSample = 0
+    const start = performance.now()
+
+    const loop = (now: number) => {
+      // ~12 fps is enough for sky motion and keeps astronomy work light
+      if (now - lastSample >= 80) {
+        lastSample = now
+        const u = ((now - start) % MOTION_CYCLE_MS) / MOTION_CYCLE_MS
+        setMotionProgress(u)
+      }
+      raf = window.requestAnimationFrame(loop)
+    }
+
+    raf = window.requestAnimationFrame(loop)
+    return () => window.cancelAnimationFrame(raf)
+  }, [motionOn, when, location.latitude, location.longitude])
+
+  const displayWhen = useMemo(() => {
+    if (!motionOn) return when
+    return new Date(when.getTime() - MOTION_SPAN_MS + motionProgress * MOTION_SPAN_MS)
+  }, [motionOn, when, motionProgress])
+
+  const objects = useMemo(
+    () => computeSkyObjects(location, displayWhen),
+    [location, displayWhen],
+  )
   const visibleObjects = objects.filter((o) => matchesSkyFilter(o, skyFilter))
   void tick
 
@@ -41,6 +87,13 @@ export default function App() {
   const visiblePlanets = objects.filter((o) => o.kind === 'planet' && o.altitude > 0)
   const sun = objects.find((o) => o.kind === 'sun')
   const moon = objects.find((o) => o.kind === 'moon')
+
+  const hoursAgo = motionOn ? (1 - motionProgress) * 6 : 0
+  const motionStatus = motionOn
+    ? hoursAgo < 0.08
+      ? `Motion · ${formatMotionClock(displayWhen, location.timeZone)} (selected time)`
+      : `Motion · ${formatMotionClock(displayWhen, location.timeZone)} · ${hoursAgo.toFixed(1)}h ago`
+    : null
 
   const useMyLocation = () => {
     if (!navigator.geolocation) {
@@ -90,7 +143,7 @@ export default function App() {
     <div className="app">
       <SkyCanvas
         objects={visibleObjects}
-        when={when}
+        when={displayWhen}
         selectedId={selectedId}
         onSelect={(obj) => setSelectedId(obj?.id ?? null)}
         emphasizeZodiac={skyFilter === 'zodiac'}
@@ -117,6 +170,9 @@ export default function App() {
           onWhenChange={setWhen}
           skyFilter={skyFilter}
           onSkyFilterChange={setSkyFilter}
+          motionOn={motionOn}
+          onToggleMotion={() => setMotionOn((v) => !v)}
+          motionStatus={motionStatus}
         />
         {geoError && <p className="error">{geoError}</p>}
 

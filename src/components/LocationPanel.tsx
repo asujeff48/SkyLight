@@ -13,6 +13,9 @@ type Props = {
   onWhenChange: (when: Date) => void
   skyFilter: SkyFilter
   onSkyFilterChange: (filter: SkyFilter) => void
+  motionOn: boolean
+  onToggleMotion: () => void
+  motionStatus: string | null
 }
 
 function toLocalInputValue(date: Date): string {
@@ -29,6 +32,9 @@ export function LocationPanel({
   onWhenChange,
   skyFilter,
   onSkyFilterChange,
+  motionOn,
+  onToggleMotion,
+  motionStatus,
 }: Props) {
   const [cityQuery, setCityQuery] = useState('')
   const [matches, setMatches] = useState<CityMatch[]>([])
@@ -178,6 +184,22 @@ export function LocationPanel({
         >
           Now
         </button>
+      </div>
+
+      <div className="panel-row motion-row">
+        <button
+          type="button"
+          className={`btn motion-btn${motionOn ? ' active' : ' ghost'}`}
+          aria-pressed={motionOn}
+          onClick={onToggleMotion}
+        >
+          {motionOn ? 'Stop motion' : 'Play last 6 hours'}
+        </button>
+        {motionStatus && (
+          <p className="motion-status" role="status">
+            {motionStatus}
+          </p>
+        )}
       </div>
 
       <div className="filter-block">

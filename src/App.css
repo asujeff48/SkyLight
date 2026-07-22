@@ -352,6 +352,35 @@ select {
   border: 1px solid var(--line);
 }
 
+.motion-row {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+}
+
+.btn.motion-btn {
+  width: 100%;
+}
+
+.btn.motion-btn.active {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid rgba(232, 201, 155, 0.65);
+}
+
+.btn.motion-btn.active:hover:not(:disabled) {
+  transform: none;
+  border-color: rgba(232, 201, 155, 0.9);
+}
+
+.motion-status {
+  margin: 0;
+  flex: 1 1 100%;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+
 .coords {
   margin: 0.1rem 0 0;
   font-size: 0.74rem;
