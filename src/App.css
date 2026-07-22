@@ -168,6 +168,17 @@ select {
   transform: translateY(-50%);
 }
 
+@media (min-width: 721px) {
+  /* Keep clear of the floating location panel on the right. */
+  .pan-right {
+    right: min(24rem, calc(42vw + 0.75rem));
+  }
+
+  .pan-up {
+    left: calc(50% - min(11rem, 21vw));
+  }
+}
+
 .pan-up {
   top: clamp(0.5rem, 1.5vw, 1rem);
   left: 50%;
