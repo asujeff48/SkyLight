@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { computeSkyObjects } from './astronomy'
 import { SkyCanvas } from './components/SkyCanvas'
 import { LocationPanel } from './components/LocationPanel'
+import { reverseGeocodeLabel } from './geocode'
 import type { GeoLocation, SkyFilter, SkyObject } from './types'
 import { displayName, formatDistance, matchesSkyFilter, PRESET_LOCATIONS } from './types'
 import './App.css'
@@ -95,48 +96,109 @@ export default function App() {
       : `Motion · ${formatMotionClock(displayWhen, location.timeZone)} · ${hoursAgo.toFixed(1)}h ago`
     : null
 
-  const useMyLocation = () => {
+  const applyBrowserLocation = async (
+    latitude: number,
+    longitude: number,
+    options?: { quiet?: boolean },
+  ) => {
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    // Show coordinates immediately, then swap in the resolved place name.
+    setLocation({
+      latitude,
+      longitude,
+      label: 'My location',
+      timeZone,
+    })
+
+    try {
+      const label = await reverseGeocodeLabel(latitude, longitude)
+      const next = {
+        latitude,
+        longitude,
+        label,
+        timeZone,
+      }
+      setLocation(next)
+      try {
+        localStorage.setItem('skyabove:lastLocation', JSON.stringify(next))
+      } catch {
+        // ignore storage failures (private mode, etc.)
+      }
+    } catch {
+      if (!options?.quiet) {
+        setGeoError('Located you, but could not look up the place name.')
+      }
+    } finally {
+      setLocating(false)
+    }
+  }
+
+  const requestBrowserLocation = (options?: {
+    quiet?: boolean
+    highAccuracy?: boolean
+    timeout?: number
+  }) => {
     if (!navigator.geolocation) {
-      setGeoError('Geolocation is not available in this browser.')
+      if (!options?.quiet) {
+        setGeoError('Geolocation is not available in this browser.')
+      }
+      setLocating(false)
       return
     }
+
     setLocating(true)
-    setGeoError(null)
+    if (!options?.quiet) setGeoError(null)
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLocation({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          label: 'My location',
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        void applyBrowserLocation(pos.coords.latitude, pos.coords.longitude, {
+          quiet: options?.quiet,
         })
-        setLocating(false)
       },
       (err) => {
-        setGeoError(err.message || 'Could not read your location.')
         setLocating(false)
+        // Always explain — silent New York fallback was confusing.
+        const hint =
+          err.code === err.PERMISSION_DENIED
+            ? 'Location permission is blocked. Allow location for this site, then click “Use my location”.'
+            : err.code === err.TIMEOUT
+              ? 'Timed out finding your location. Click “Use my location” to try again.'
+              : 'Could not read your location. Click “Use my location” and allow access when prompted.'
+        setGeoError(hint)
       },
-      { enableHighAccuracy: true, timeout: 12_000 },
+      {
+        enableHighAccuracy: options?.highAccuracy ?? false,
+        timeout: options?.timeout ?? 12_000,
+        maximumAge: 60_000,
+      },
     )
   }
 
+  const useMyLocation = () => {
+    requestBrowserLocation({ quiet: false, highAccuracy: true, timeout: 15_000 })
+  }
+
   useEffect(() => {
-    // Attempt location on first visit; fall back quietly to New York
-    if (!navigator.geolocation) return
-    setLocating(true)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          label: 'My location',
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        })
-        setLocating(false)
-      },
-      () => setLocating(false),
-      { timeout: 8000 },
-    )
+    // Restore last successful location while we ask the browser for a fresh fix.
+    try {
+      const raw = localStorage.getItem('skyabove:lastLocation')
+      if (raw) {
+        const saved = JSON.parse(raw) as GeoLocation
+        if (
+          typeof saved.latitude === 'number' &&
+          typeof saved.longitude === 'number' &&
+          typeof saved.label === 'string'
+        ) {
+          setLocation(saved)
+        }
+      }
+    } catch {
+      // ignore bad cache
+    }
+
+    // Network/IP-friendly first attempt (faster, fewer permission edge cases),
+    // then the explicit button can request high accuracy.
+    requestBrowserLocation({ quiet: true, highAccuracy: false, timeout: 12_000 })
   }, [])
 
   return (

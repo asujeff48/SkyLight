@@ -110,10 +110,21 @@ export function LocationPanel({
           className="btn"
           onClick={onUseMyLocation}
           disabled={locating}
+          title={
+            location.label !== 'My location'
+              ? `Currently showing ${location.label}`
+              : 'Detect your current location'
+          }
         >
           {locating ? 'Finding…' : 'Use my location'}
         </button>
       </div>
+      {!PRESET_LOCATIONS.some((p) => p.label === location.label) &&
+        location.label !== 'My location' && (
+          <p className="current-place" aria-live="polite">
+            Showing <strong>{location.label}</strong>
+          </p>
+        )}
 
       <div className="panel-row">
         <label className="field grow">
