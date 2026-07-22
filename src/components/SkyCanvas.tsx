@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { projectToCanvas, skyTone } from '../astronomy'
+import { ZODIAC_ART } from '../data/zodiacArt'
 import { ZODIAC_SIGNS } from '../data/zodiac'
 import { ZODIAC_FIGURE_COLORS, ZODIAC_FIGURE_LINES } from '../data/zodiacFigures'
 import type { SkyObject } from '../types'
@@ -96,7 +97,17 @@ function drawLabel(
 
 type ProjectedStar = { x: number; y: number; visible: boolean }
 
-/** Stick-figure outlines connecting zodiac stars, plus a sign caption. */
+function rgbaWithAlpha(color: string, alpha: number): string {
+  const match = color.match(/rgba?\(([^)]+)\)/)
+  if (!match) return color
+  const [r, g, b] = match[1].split(',').map((v) => v.trim())
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+/**
+ * Draw full zodiac animals/characters over each visible constellation,
+ * sized to the star group, with a faint star-link underlay.
+ */
 function drawZodiacFigures(
   ctx: CanvasRenderingContext2D,
   objects: SkyObject[],
@@ -105,55 +116,78 @@ function drawZodiacFigures(
   frame: number,
 ) {
   const byName = new Map<string, ProjectedStar>()
+  const starsBySign = new Map<string, { x: number; y: number }[]>()
+
   for (const obj of objects) {
     if (obj.kind !== 'star' || !obj.name || !obj.zodiacSign) continue
     const p = projectToCanvas(obj.altitude, obj.azimuth, width, height)
     byName.set(obj.name, p)
+    if (!p.visible) continue
+    const list = starsBySign.get(obj.zodiacSign) ?? []
+    list.push({ x: p.x, y: p.y })
+    starsBySign.set(obj.zodiacSign, list)
   }
 
-  const pulse = 0.72 + 0.28 * (0.5 + 0.5 * Math.sin(frame * 0.03))
+  const breathe = 0.85 + 0.15 * (0.5 + 0.5 * Math.sin(frame * 0.025))
 
   for (const sign of ZODIAC_SIGNS) {
-    const lines = ZODIAC_FIGURE_LINES[sign]
-    const color = ZODIAC_FIGURE_COLORS[sign]
-    const points: { x: number; y: number }[] = []
+    const points = starsBySign.get(sign)
+    if (!points || points.length < 1) continue
 
+    const color = ZODIAC_FIGURE_COLORS[sign]
+    const cx = points.reduce((s, p) => s + p.x, 0) / points.length
+    const cy = points.reduce((s, p) => s + p.y, 0) / points.length
+
+    let maxDist = 28
+    for (const p of points) {
+      maxDist = Math.max(maxDist, Math.hypot(p.x - cx, p.y - cy))
+    }
+    // Fit the normalized art (±1) into the constellation footprint.
+    const scale = Math.min(Math.max(maxDist * 1.15, 36), Math.min(width, height) * 0.22)
+
+    // Faint star-to-star underlay so the sky pattern still reads.
     ctx.save()
     ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
-    ctx.strokeStyle = color
-    ctx.globalAlpha = pulse
-    ctx.lineWidth = 1.6
-    ctx.shadowColor = color
-    ctx.shadowBlur = 8
-
-    for (const [aName, bName] of lines) {
+    ctx.strokeStyle = rgbaWithAlpha(color, 0.28)
+    ctx.lineWidth = 1
+    ctx.setLineDash([4, 5])
+    for (const [aName, bName] of ZODIAC_FIGURE_LINES[sign]) {
       const a = byName.get(aName)
       const b = byName.get(bName)
       if (!a?.visible || !b?.visible) continue
-      points.push(a, b)
       ctx.beginPath()
       ctx.moveTo(a.x, a.y)
       ctx.lineTo(b.x, b.y)
       ctx.stroke()
     }
+    ctx.setLineDash([])
+    ctx.restore()
 
-    ctx.shadowBlur = 0
-    ctx.globalAlpha = 1
+    // Full animal / character illustration
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.scale(scale * breathe, scale * breathe)
+    ctx.globalAlpha = 0.72
+    ctx.fillStyle = rgbaWithAlpha(color, 0.32)
+    ctx.strokeStyle = rgbaWithAlpha(color, 0.98)
+    ctx.lineWidth = 2.1 / scale
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.shadowColor = rgbaWithAlpha(color, 0.55)
+    ctx.shadowBlur = 12 / scale
+    ZODIAC_ART[sign](ctx)
+    ctx.restore()
 
-    if (points.length >= 2) {
-      const cx = points.reduce((s, p) => s + p.x, 0) / points.length
-      const cy = points.reduce((s, p) => s + p.y, 0) / points.length
-      ctx.font = '600 12px Fraunces, Georgia, serif'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.lineWidth = 3.5
-      ctx.strokeStyle = 'rgba(5, 9, 20, 0.65)'
-      ctx.strokeText(sign, cx, cy - 14)
-      ctx.fillStyle = color.replace(/[\d.]+\)$/, '0.95)')
-      ctx.fillText(sign, cx, cy - 14)
-    }
-
+    // Sign caption under the figure
+    ctx.save()
+    ctx.font = '600 13px Fraunces, Georgia, serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+    ctx.lineWidth = 4
+    ctx.strokeStyle = 'rgba(5, 9, 20, 0.7)'
+    ctx.strokeText(sign, cx, cy + scale * 0.95)
+    ctx.fillStyle = rgbaWithAlpha(color, 0.98)
+    ctx.fillText(sign, cx, cy + scale * 0.95)
     ctx.restore()
   }
 }
