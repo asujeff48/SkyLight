@@ -379,6 +379,17 @@ select {
   color: var(--mist-dim);
 }
 
+.current-place {
+  margin: -0.15rem 0 0.45rem;
+  font-size: 0.78rem;
+  color: var(--mist-dim);
+}
+
+.current-place strong {
+  color: var(--mist);
+  font-weight: 600;
+}
+
 .sun-times {
   margin: 0.2rem 0 0;
   font-size: 0.76rem;

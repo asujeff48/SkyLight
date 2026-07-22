@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { computeSkyObjects } from './astronomy'
 import { SkyCanvas } from './components/SkyCanvas'
 import { LocationPanel } from './components/LocationPanel'
+import { reverseGeocodeLabel } from './geocode'
 import type { GeoLocation, SkyFilter, SkyObject } from './types'
 import { displayName, formatDistance, matchesSkyFilter, PRESET_LOCATIONS } from './types'
 import './App.css'
@@ -95,6 +96,37 @@ export default function App() {
       : `Motion · ${formatMotionClock(displayWhen, location.timeZone)} · ${hoursAgo.toFixed(1)}h ago`
     : null
 
+  const applyBrowserLocation = async (
+    latitude: number,
+    longitude: number,
+    options?: { quiet?: boolean },
+  ) => {
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    // Show coordinates immediately, then swap in the resolved place name.
+    setLocation({
+      latitude,
+      longitude,
+      label: 'My location',
+      timeZone,
+    })
+
+    try {
+      const label = await reverseGeocodeLabel(latitude, longitude)
+      setLocation({
+        latitude,
+        longitude,
+        label,
+        timeZone,
+      })
+    } catch {
+      if (!options?.quiet) {
+        setGeoError('Located you, but could not look up the place name.')
+      }
+    } finally {
+      setLocating(false)
+    }
+  }
+
   const useMyLocation = () => {
     if (!navigator.geolocation) {
       setGeoError('Geolocation is not available in this browser.')
@@ -104,13 +136,7 @@ export default function App() {
     setGeoError(null)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLocation({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          label: 'My location',
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        })
-        setLocating(false)
+        void applyBrowserLocation(pos.coords.latitude, pos.coords.longitude)
       },
       (err) => {
         setGeoError(err.message || 'Could not read your location.')
@@ -126,16 +152,12 @@ export default function App() {
     setLocating(true)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLocation({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          label: 'My location',
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        void applyBrowserLocation(pos.coords.latitude, pos.coords.longitude, {
+          quiet: true,
         })
-        setLocating(false)
       },
       () => setLocating(false),
-      { timeout: 8000 },
+      { enableHighAccuracy: true, timeout: 8000 },
     )
   }, [])
 
