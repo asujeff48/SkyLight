@@ -120,46 +120,54 @@ export default function App() {
         <div className="status">
           {skyFilter === 'all' && (
             <>
-              <div>
-                <span className="label">Sun</span>
-                <strong>
-                  {sun && sun.altitude > 0
-                    ? `${sun.altitude.toFixed(0)}° up`
-                    : 'Below horizon'}
-                </strong>
+              <div className="status-row">
+                <span className="status-item">
+                  <span className="label">Sun</span>
+                  <strong>
+                    {sun && sun.altitude > 0
+                      ? `${sun.altitude.toFixed(0)}° up`
+                      : 'Below'}
+                  </strong>
+                </span>
+                <span className="status-item">
+                  <span className="label">Moon</span>
+                  <strong>
+                    {moon && moon.altitude > 0
+                      ? `${Math.round((moon.phase ?? 0) * 100)}% · ${moon.altitude.toFixed(0)}°`
+                      : 'Below'}
+                  </strong>
+                </span>
               </div>
-              <div>
-                <span className="label">Moon</span>
-                <strong>
-                  {moon && moon.altitude > 0
-                    ? `${Math.round((moon.phase ?? 0) * 100)}% lit · ${moon.altitude.toFixed(0)}°`
-                    : 'Below horizon'}
-                </strong>
+              <div className="status-row">
+                <span className="status-item wide">
+                  <span className="label">Planets</span>
+                  <strong>
+                    {visiblePlanets.length
+                      ? visiblePlanets.map((p) => displayName(p)).join(', ')
+                      : 'None'}
+                  </strong>
+                </span>
               </div>
-              <div>
-                <span className="label">Planets up</span>
+            </>
+          )}
+          {skyFilter === 'planets' && (
+            <div className="status-row">
+              <span className="status-item wide">
+                <span className="label">Planets</span>
                 <strong>
                   {visiblePlanets.length
                     ? visiblePlanets.map((p) => displayName(p)).join(', ')
                     : 'None'}
                 </strong>
-              </div>
-            </>
-          )}
-          {skyFilter === 'planets' && (
-            <div>
-              <span className="label">Planets up</span>
-              <strong>
-                {visiblePlanets.length
-                  ? visiblePlanets.map((p) => displayName(p)).join(', ')
-                  : 'None'}
-              </strong>
+              </span>
             </div>
           )}
           {skyFilter === 'stars' && (
-            <div>
-              <span className="label">Showing</span>
-              <strong>Stars only</strong>
+            <div className="status-row">
+              <span className="status-item wide">
+                <span className="label">Showing</span>
+                <strong>Stars only</strong>
+              </span>
             </div>
           )}
         </div>
