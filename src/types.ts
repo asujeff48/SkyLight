@@ -9,17 +9,22 @@ export type GeoLocation = {
 export type SkyBodyKind = 'star' | 'planet' | 'moon' | 'sun'
 
 /** What to draw on the sky map. Default view is `all`. */
-export type SkyFilter = 'all' | 'planets' | 'stars'
+export type SkyFilter = 'all' | 'planets' | 'stars' | 'zodiac'
 
 export const SKY_FILTERS: { id: SkyFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'planets', label: 'Planets Only' },
   { id: 'stars', label: 'Stars Only' },
+  { id: 'zodiac', label: 'Zodiac Signs' },
 ]
 
-export function matchesSkyFilter(object: { kind: SkyBodyKind }, filter: SkyFilter): boolean {
+export function matchesSkyFilter(
+  object: { kind: SkyBodyKind; zodiacSign?: string | null },
+  filter: SkyFilter,
+): boolean {
   if (filter === 'all') return true
   if (filter === 'stars') return object.kind === 'star'
+  if (filter === 'zodiac') return object.kind === 'star' && Boolean(object.zodiacSign)
   return object.kind === 'planet'
 }
 
@@ -36,6 +41,8 @@ export type SkyObject = {
   /** 0–1 illuminated fraction for Moon; unused for others */
   phase?: number
   color: string
+  /** Astrology / zodiac constellation when this star belongs to one */
+  zodiacSign?: string | null
   /** Distance from Earth when known */
   distance?: {
     value: number

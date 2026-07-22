@@ -7,6 +7,8 @@ type Props = {
   when: Date
   selectedId: string | null
   onSelect: (object: SkyObject | null) => void
+  /** When true, name every zodiac star (and include its sign). */
+  emphasizeZodiac?: boolean
 }
 
 function drawMoon(
@@ -56,12 +58,17 @@ function drawSun(ctx: CanvasRenderingContext2D, x: number, y: number, radius: nu
 }
 
 /** Named bright bodies that should keep a readable on-sky label. */
-function shouldShowLabel(obj: SkyObject, selected: boolean): boolean {
+function shouldShowLabel(
+  obj: SkyObject,
+  selected: boolean,
+  emphasizeZodiac: boolean,
+): boolean {
   if (!obj.name) return false
   if (selected) return true
   if (obj.kind === 'sun' || obj.kind === 'moon') return true
   // Label every planet above the horizon — there are few of them.
   if (obj.kind === 'planet') return true
+  if (emphasizeZodiac && obj.zodiacSign) return true
   // Named stars brighter than ~mag 2 (Sirius through Polaris, Deneb, etc.)
   return obj.magnitude < 2.0
 }
@@ -85,10 +92,18 @@ function drawLabel(
   ctx.restore()
 }
 
-export function SkyCanvas({ objects, when, selectedId, onSelect }: Props) {
+export function SkyCanvas({
+  objects,
+  when,
+  selectedId,
+  onSelect,
+  emphasizeZodiac = false,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const objectsRef = useRef(objects)
   objectsRef.current = objects
+  const emphasizeZodiacRef = useRef(emphasizeZodiac)
+  emphasizeZodiacRef.current = emphasizeZodiac
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -215,10 +230,19 @@ export function SkyCanvas({ objects, when, selectedId, onSelect }: Props) {
           ctx.stroke()
         }
 
-        if (obj.name && shouldShowLabel(obj, selected)) {
-          const emphasis = selected || obj.kind === 'sun' || obj.kind === 'moon' || obj.kind === 'planet'
+        if (obj.name && shouldShowLabel(obj, selected, emphasizeZodiacRef.current)) {
+          const emphasis =
+            selected ||
+            obj.kind === 'sun' ||
+            obj.kind === 'moon' ||
+            obj.kind === 'planet' ||
+            Boolean(emphasizeZodiacRef.current && obj.zodiacSign)
+          const text =
+            emphasizeZodiacRef.current && obj.zodiacSign
+              ? `${obj.name} · ${obj.zodiacSign}`
+              : obj.name
           labels.push({
-            text: obj.name,
+            text,
             x: x + markerRadius + 6,
             y,
             emphasis,
@@ -242,7 +266,7 @@ export function SkyCanvas({ objects, when, selectedId, onSelect }: Props) {
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', resize)
     }
-  }, [when, selectedId])
+  }, [when, selectedId, emphasizeZodiac])
 
   const handlePointer = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current

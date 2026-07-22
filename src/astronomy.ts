@@ -10,6 +10,7 @@ import {
 } from 'astronomy-engine'
 import { BRIGHT_STARS } from './data/stars'
 import { STAR_DISTANCES_LY } from './data/starDistances'
+import { zodiacSignForStar } from './data/zodiac'
 import type { GeoLocation, SkyObject } from './types'
 
 export type SunTimes = {
@@ -68,6 +69,7 @@ export function computeSkyObjects(
     if (altitude < -2) continue
     const name = star.name ?? null
     const ly = name ? STAR_DISTANCES_LY[name] : undefined
+    const zodiacSign = zodiacSignForStar(name)
     objects.push({
       id: `star-${star.ra}-${star.dec}-${star.mag}`,
       name,
@@ -76,6 +78,7 @@ export function computeSkyObjects(
       azimuth,
       magnitude: star.mag,
       color: starColor(star.mag),
+      zodiacSign,
       distance: ly != null ? { value: ly, unit: 'ly' } : undefined,
     })
   }

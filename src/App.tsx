@@ -93,6 +93,7 @@ export default function App() {
         when={when}
         selectedId={selectedId}
         onSelect={(obj) => setSelectedId(obj?.id ?? null)}
+        emphasizeZodiac={skyFilter === 'zodiac'}
       />
 
       <header className="hero">
@@ -162,6 +163,12 @@ export default function App() {
               <span className="label">Showing</span> <strong>Stars only</strong>
             </p>
           )}
+          {skyFilter === 'zodiac' && (
+            <p className="status-line">
+              <span className="label">Showing</span>{' '}
+              <strong>Zodiac sign stars</strong>
+            </p>
+          )}
         </div>
 
         {selected && (
@@ -173,6 +180,12 @@ export default function App() {
                 <dt>Name</dt>
                 <dd>{selected.name ? selected.name : 'Not known'}</dd>
               </div>
+              {selected.zodiacSign && (
+                <div>
+                  <dt>Astrology sign</dt>
+                  <dd>{selected.zodiacSign}</dd>
+                </div>
+              )}
               <div>
                 <dt>Distance from Earth</dt>
                 <dd>{formatDistance(selected) ?? 'Not known'}</dd>

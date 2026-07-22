@@ -281,14 +281,14 @@ select {
 
 .filter-group {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.25rem;
 }
 
 .filter-btn {
   padding: 0.4rem 0.3rem;
   font: inherit;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 500;
   letter-spacing: 0.02em;
   color: #d7e0ef;
