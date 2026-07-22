@@ -1,4 +1,4 @@
-# SkyLight
+# StarLight
 
 Interactive night-sky viewer: planets, bright stars, Moon, and Sun drawn for your location (or a place you pick).
 

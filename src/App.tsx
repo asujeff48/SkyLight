@@ -97,7 +97,7 @@ export default function App() {
       />
 
       <header className="hero">
-        <p className="brand">SkyLight</p>
+        <p className="brand">StarLight</p>
         <h1>
           The sky above <span className="place-name">{location.label}</span>
         </h1>
