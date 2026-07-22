@@ -167,14 +167,14 @@ function drawZodiacFigures(
     ctx.save()
     ctx.translate(cx, cy)
     ctx.scale(scale * breathe, scale * breathe)
-    ctx.globalAlpha = 0.72
-    ctx.fillStyle = rgbaWithAlpha(color, 0.32)
-    ctx.strokeStyle = rgbaWithAlpha(color, 0.98)
-    ctx.lineWidth = 2.1 / scale
+    ctx.globalAlpha = 0.88
+    ctx.fillStyle = rgbaWithAlpha(color, 0.42)
+    ctx.strokeStyle = rgbaWithAlpha(color, 1)
+    ctx.lineWidth = 2.4 / scale
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
-    ctx.shadowColor = rgbaWithAlpha(color, 0.55)
-    ctx.shadowBlur = 12 / scale
+    ctx.shadowColor = rgbaWithAlpha(color, 0.65)
+    ctx.shadowBlur = 16 / scale
     ZODIAC_ART[sign](ctx)
     ctx.restore()
 
