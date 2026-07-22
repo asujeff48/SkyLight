@@ -111,6 +111,75 @@ select {
   letter-spacing: 0.04em;
 }
 
+.pan-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.pan-btn {
+  position: absolute;
+  pointer-events: auto;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  border: 1px solid rgba(180, 200, 230, 0.4);
+  background: rgba(8, 14, 28, 0.72);
+  color: #f2f6fc;
+  font: inherit;
+  font-size: 1.55rem;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: grid;
+  place-items: center;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+}
+
+.pan-btn:hover:not(:disabled) {
+  border-color: rgba(232, 201, 155, 0.7);
+  background: rgba(12, 20, 38, 0.88);
+  color: #fff;
+}
+
+.pan-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.pan-btn:active:not(:disabled) {
+  background: rgba(20, 32, 56, 0.92);
+}
+
+.pan-left {
+  left: clamp(0.5rem, 1.5vw, 1rem);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.pan-right {
+  right: clamp(0.5rem, 1.5vw, 1rem);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.pan-up {
+  top: clamp(0.5rem, 1.5vw, 1rem);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.pan-down {
+  bottom: clamp(2.75rem, 7vw, 4rem);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 .hero {
   position: absolute;
   top: 0;
@@ -521,6 +590,16 @@ select {
 
   .zoom-controls {
     bottom: 0.75rem;
+  }
+
+  .pan-btn {
+    width: 2.15rem;
+    height: 2.15rem;
+    font-size: 1.35rem;
+  }
+
+  .pan-down {
+    bottom: 0.65rem;
   }
 
   .hero {

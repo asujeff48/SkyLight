@@ -482,14 +482,20 @@ export function SkyCanvas({
 
       // Pinch-zoom / ctrl+wheel zooms toward the cursor.
       // Once zoomed, plain scrolling pans so off-screen sky stays reachable.
+      // Shift+wheel maps vertical mouse wheels to side-to-side pan.
       const wantsZoom = e.ctrlKey || e.metaKey || viewRef.current.scale <= 1.001
 
       if (!wantsZoom) {
+        const horizontal =
+          e.shiftKey && Math.abs(e.deltaX) < Math.abs(e.deltaY)
+            ? e.deltaY
+            : e.deltaX
+        const vertical = e.shiftKey && Math.abs(e.deltaX) < Math.abs(e.deltaY) ? 0 : e.deltaY
         syncView(
           {
             ...viewRef.current,
-            panX: viewRef.current.panX - e.deltaX,
-            panY: viewRef.current.panY - e.deltaY,
+            panX: viewRef.current.panX - horizontal,
+            panY: viewRef.current.panY - vertical,
           },
           width,
           height,
@@ -652,15 +658,175 @@ export function SkyCanvas({
     syncView({ scale: 1, panX: 0, panY: 0 }, canvas.clientWidth, canvas.clientHeight)
   }
 
+  const panBy = (dx: number, dy: number) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    if (viewRef.current.scale <= 1.001) return
+    syncView(
+      {
+        ...viewRef.current,
+        panX: viewRef.current.panX + dx,
+        panY: viewRef.current.panY + dy,
+      },
+      canvas.clientWidth,
+      canvas.clientHeight,
+    )
+  }
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (viewRef.current.scale <= 1.001) return
+      const target = e.target as HTMLElement | null
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'SELECT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return
+      }
+
+      const step = e.shiftKey ? 140 : 80
+      switch (e.key) {
+        case 'ArrowLeft':
+          e.preventDefault()
+          panBy(step, 0)
+          break
+        case 'ArrowRight':
+          e.preventDefault()
+          panBy(-step, 0)
+          break
+        case 'ArrowUp':
+          e.preventDefault()
+          panBy(0, step)
+          break
+        case 'ArrowDown':
+          e.preventDefault()
+          panBy(0, -step)
+          break
+        default:
+          break
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   const zoomPercent = Math.round(viewUi.scale * 100)
+  const isZoomed = viewUi.scale > 1.01
+
+  const panLimits = (() => {
+    const canvas = canvasRef.current
+    const width = canvas?.clientWidth ?? 1
+    const height = canvas?.clientHeight ?? 1
+    const maxX = isZoomed ? (width / 2) * (viewUi.scale - 1) + 48 : 0
+    const maxY = isZoomed ? (height / 2) * (viewUi.scale - 1) + 48 : 0
+    return {
+      canLeft: viewUi.panX < maxX - 1,
+      canRight: viewUi.panX > -maxX + 1,
+      canUp: viewUi.panY < maxY - 1,
+      canDown: viewUi.panY > -maxY + 1,
+    }
+  })()
+
+  const panStep = () => {
+    const canvas = canvasRef.current
+    if (!canvas) return 96
+    return Math.max(72, Math.round(canvas.clientWidth * 0.22))
+  }
+
+  const startEdgePan = (dx: number, dy: number) => {
+    const stepOnce = () => {
+      const amount = Math.max(14, panStep() * 0.22)
+      panBy(dx * amount, dy * amount)
+    }
+    stepOnce()
+    const timer = window.setInterval(stepOnce, 45)
+    const stop = () => {
+      window.clearInterval(timer)
+      window.removeEventListener('pointerup', stop)
+      window.removeEventListener('pointercancel', stop)
+      window.removeEventListener('blur', stop)
+    }
+    window.addEventListener('pointerup', stop)
+    window.addEventListener('pointercancel', stop)
+    window.addEventListener('blur', stop)
+  }
 
   return (
     <div className="sky-stage">
       <canvas
         ref={canvasRef}
-        className={`sky-canvas${viewUi.scale > 1.01 ? ' is-zoomable' : ''}`}
-        aria-label="Interactive sky map. Scroll to zoom, drag to pan."
+        className={`sky-canvas${isZoomed ? ' is-zoomable' : ''}`}
+        aria-label="Interactive sky map. Zoom in, then use side arrows, drag, or scroll to explore."
       />
+
+      {isZoomed && (
+        <div className="pan-controls" aria-label="Sky pan">
+          <button
+            type="button"
+            className="pan-btn pan-left"
+            aria-label="Pan left"
+            title="Pan left (or Shift+scroll)"
+            disabled={!panLimits.canLeft}
+            onPointerDown={(e) => {
+              if (e.button !== 0 || !panLimits.canLeft) return
+              e.preventDefault()
+              e.stopPropagation()
+              startEdgePan(1, 0)
+            }}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            className="pan-btn pan-right"
+            aria-label="Pan right"
+            title="Pan right (or Shift+scroll)"
+            disabled={!panLimits.canRight}
+            onPointerDown={(e) => {
+              if (e.button !== 0 || !panLimits.canRight) return
+              e.preventDefault()
+              e.stopPropagation()
+              startEdgePan(-1, 0)
+            }}
+          >
+            ›
+          </button>
+          <button
+            type="button"
+            className="pan-btn pan-up"
+            aria-label="Pan up"
+            title="Pan up"
+            disabled={!panLimits.canUp}
+            onPointerDown={(e) => {
+              if (e.button !== 0 || !panLimits.canUp) return
+              e.preventDefault()
+              e.stopPropagation()
+              startEdgePan(0, 1)
+            }}
+          >
+            ˄
+          </button>
+          <button
+            type="button"
+            className="pan-btn pan-down"
+            aria-label="Pan down"
+            title="Pan down"
+            disabled={!panLimits.canDown}
+            onPointerDown={(e) => {
+              if (e.button !== 0 || !panLimits.canDown) return
+              e.preventDefault()
+              e.stopPropagation()
+              startEdgePan(0, -1)
+            }}
+          >
+            ˅
+          </button>
+        </div>
+      )}
+
       <div className="zoom-controls" role="group" aria-label="Sky zoom">
         <button
           type="button"

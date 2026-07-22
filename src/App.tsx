@@ -201,7 +201,9 @@ export default function App() {
         )}
       </aside>
 
-      <p className="hint">Zoom +, then scroll or drag to explore · tap for details</p>
+      <p className="hint">
+        Zoom +, then use side arrows, scroll, or drag to explore · tap for details
+      </p>
     </div>
   )
 }
