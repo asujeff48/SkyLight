@@ -197,7 +197,7 @@ function drawZodiacFigures(
 
     ctx.save()
     ctx.lineCap = 'round'
-    ctx.strokeStyle = rgbaWithAlpha(color, 0.28)
+    ctx.strokeStyle = rgbaWithAlpha(color, 0.14)
     ctx.lineWidth = 1
     ctx.setLineDash([4, 5])
     for (const [aName, bName] of ZODIAC_FIGURE_LINES[sign]) {
@@ -212,17 +212,18 @@ function drawZodiacFigures(
     ctx.setLineDash([])
     ctx.restore()
 
+    // Light translucent characters so star names stay easy to read.
     ctx.save()
     ctx.translate(cx, cy)
     ctx.scale(scale * breathe, scale * breathe)
-    ctx.globalAlpha = 0.88
-    ctx.fillStyle = rgbaWithAlpha(color, 0.42)
-    ctx.strokeStyle = rgbaWithAlpha(color, 1)
-    ctx.lineWidth = 2.4 / scale
+    ctx.globalAlpha = 0.4
+    ctx.fillStyle = rgbaWithAlpha(color, 0.1)
+    ctx.strokeStyle = rgbaWithAlpha(color, 0.42)
+    ctx.lineWidth = 1.8 / scale
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
-    ctx.shadowColor = rgbaWithAlpha(color, 0.65)
-    ctx.shadowBlur = 16 / scale
+    ctx.shadowColor = rgbaWithAlpha(color, 0.2)
+    ctx.shadowBlur = 8 / scale
     ZODIAC_ART[sign](ctx)
     ctx.restore()
 
@@ -231,9 +232,9 @@ function drawZodiacFigures(
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
     ctx.lineWidth = 4
-    ctx.strokeStyle = 'rgba(5, 9, 20, 0.7)'
+    ctx.strokeStyle = 'rgba(5, 9, 20, 0.55)'
     ctx.strokeText(sign, cx, cy + scale * 0.95)
-    ctx.fillStyle = rgbaWithAlpha(color, 0.98)
+    ctx.fillStyle = rgbaWithAlpha(color, 0.72)
     ctx.fillText(sign, cx, cy + scale * 0.95)
     ctx.restore()
   }
