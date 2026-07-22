@@ -112,12 +112,18 @@ export default function App() {
 
     try {
       const label = await reverseGeocodeLabel(latitude, longitude)
-      setLocation({
+      const next = {
         latitude,
         longitude,
         label,
         timeZone,
-      })
+      }
+      setLocation(next)
+      try {
+        localStorage.setItem('skyabove:lastLocation', JSON.stringify(next))
+      } catch {
+        // ignore storage failures (private mode, etc.)
+      }
     } catch {
       if (!options?.quiet) {
         setGeoError('Located you, but could not look up the place name.')
@@ -127,38 +133,72 @@ export default function App() {
     }
   }
 
-  const useMyLocation = () => {
+  const requestBrowserLocation = (options?: {
+    quiet?: boolean
+    highAccuracy?: boolean
+    timeout?: number
+  }) => {
     if (!navigator.geolocation) {
-      setGeoError('Geolocation is not available in this browser.')
+      if (!options?.quiet) {
+        setGeoError('Geolocation is not available in this browser.')
+      }
+      setLocating(false)
       return
     }
-    setLocating(true)
-    setGeoError(null)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        void applyBrowserLocation(pos.coords.latitude, pos.coords.longitude)
-      },
-      (err) => {
-        setGeoError(err.message || 'Could not read your location.')
-        setLocating(false)
-      },
-      { enableHighAccuracy: true, timeout: 12_000 },
-    )
-  }
 
-  useEffect(() => {
-    // Attempt location on first visit; fall back quietly to New York
-    if (!navigator.geolocation) return
     setLocating(true)
+    if (!options?.quiet) setGeoError(null)
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         void applyBrowserLocation(pos.coords.latitude, pos.coords.longitude, {
-          quiet: true,
+          quiet: options?.quiet,
         })
       },
-      () => setLocating(false),
-      { enableHighAccuracy: true, timeout: 8000 },
+      (err) => {
+        setLocating(false)
+        // Always explain — silent New York fallback was confusing.
+        const hint =
+          err.code === err.PERMISSION_DENIED
+            ? 'Location permission is blocked. Allow location for this site, then click “Use my location”.'
+            : err.code === err.TIMEOUT
+              ? 'Timed out finding your location. Click “Use my location” to try again.'
+              : 'Could not read your location. Click “Use my location” and allow access when prompted.'
+        setGeoError(hint)
+      },
+      {
+        enableHighAccuracy: options?.highAccuracy ?? false,
+        timeout: options?.timeout ?? 12_000,
+        maximumAge: 60_000,
+      },
     )
+  }
+
+  const useMyLocation = () => {
+    requestBrowserLocation({ quiet: false, highAccuracy: true, timeout: 15_000 })
+  }
+
+  useEffect(() => {
+    // Restore last successful location while we ask the browser for a fresh fix.
+    try {
+      const raw = localStorage.getItem('skyabove:lastLocation')
+      if (raw) {
+        const saved = JSON.parse(raw) as GeoLocation
+        if (
+          typeof saved.latitude === 'number' &&
+          typeof saved.longitude === 'number' &&
+          typeof saved.label === 'string'
+        ) {
+          setLocation(saved)
+        }
+      }
+    } catch {
+      // ignore bad cache
+    }
+
+    // Network/IP-friendly first attempt (faster, fewer permission edge cases),
+    // then the explicit button can request high accuracy.
+    requestBrowserLocation({ quiet: true, highAccuracy: false, timeout: 12_000 })
   }, [])
 
   return (
