@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { projectToCanvas, skyTone } from '../astronomy'
 import { ZODIAC_ART } from '../data/zodiacArt'
 import { ZODIAC_SIGNS } from '../data/zodiac'
@@ -13,6 +13,15 @@ type Props = {
   /** When true, name every zodiac star (and include its sign). */
   emphasizeZodiac?: boolean
 }
+
+type ViewTransform = {
+  scale: number
+  panX: number
+  panY: number
+}
+
+const MIN_SCALE = 1
+const MAX_SCALE = 5
 
 function drawMoon(
   ctx: CanvasRenderingContext2D,
@@ -29,7 +38,6 @@ function drawMoon(
   ctx.shadowBlur = radius * 1.8
   ctx.fill()
 
-  // Simple phase shadow: illuminated fraction from right
   ctx.beginPath()
   ctx.arc(x, y, radius + 0.5, 0, Math.PI * 2)
   ctx.clip()
@@ -60,7 +68,6 @@ function drawSun(ctx: CanvasRenderingContext2D, x: number, y: number, radius: nu
   ctx.fill()
 }
 
-/** Named bright bodies that should keep a readable on-sky label. */
 function shouldShowLabel(
   obj: SkyObject,
   selected: boolean,
@@ -69,10 +76,8 @@ function shouldShowLabel(
   if (!obj.name) return false
   if (selected) return true
   if (obj.kind === 'sun' || obj.kind === 'moon') return true
-  // Label every planet above the horizon — there are few of them.
   if (obj.kind === 'planet') return true
   if (emphasizeZodiac && obj.zodiacSign) return true
-  // Named stars brighter than ~mag 2 (Sirius through Polaris, Deneb, etc.)
   return obj.magnitude < 2.0
 }
 
@@ -104,10 +109,56 @@ function rgbaWithAlpha(color: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
-/**
- * Draw full zodiac animals/characters over each visible constellation,
- * sized to the star group, with a faint star-link underlay.
- */
+function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n))
+}
+
+function clampView(view: ViewTransform, width: number, height: number): ViewTransform {
+  const scale = clamp(view.scale, MIN_SCALE, MAX_SCALE)
+  if (scale <= 1.001) {
+    return { scale: 1, panX: 0, panY: 0 }
+  }
+  const maxX = (width / 2) * (scale - 1) + 48
+  const maxY = (height / 2) * (scale - 1) + 48
+  return {
+    scale,
+    panX: clamp(view.panX, -maxX, maxX),
+    panY: clamp(view.panY, -maxY, maxY),
+  }
+}
+
+/** Map unzoomed sky coords → screen pixels. */
+function worldToScreen(
+  x: number,
+  y: number,
+  view: ViewTransform,
+  width: number,
+  height: number,
+) {
+  const cx = width / 2
+  const cy = height / 2
+  return {
+    x: (x - cx) * view.scale + cx + view.panX,
+    y: (y - cy) * view.scale + cy + view.panY,
+  }
+}
+
+/** Map screen pixels → unzoomed sky coords. */
+function screenToWorld(
+  x: number,
+  y: number,
+  view: ViewTransform,
+  width: number,
+  height: number,
+) {
+  const cx = width / 2
+  const cy = height / 2
+  return {
+    x: (x - cx - view.panX) / view.scale + cx,
+    y: (y - cy - view.panY) / view.scale + cy,
+  }
+}
+
 function drawZodiacFigures(
   ctx: CanvasRenderingContext2D,
   objects: SkyObject[],
@@ -142,10 +193,8 @@ function drawZodiacFigures(
     for (const p of points) {
       maxDist = Math.max(maxDist, Math.hypot(p.x - cx, p.y - cy))
     }
-    // Fit the normalized art (±1) into the constellation footprint.
     const scale = Math.min(Math.max(maxDist * 1.15, 36), Math.min(width, height) * 0.22)
 
-    // Faint star-to-star underlay so the sky pattern still reads.
     ctx.save()
     ctx.lineCap = 'round'
     ctx.strokeStyle = rgbaWithAlpha(color, 0.28)
@@ -163,7 +212,6 @@ function drawZodiacFigures(
     ctx.setLineDash([])
     ctx.restore()
 
-    // Full animal / character illustration
     ctx.save()
     ctx.translate(cx, cy)
     ctx.scale(scale * breathe, scale * breathe)
@@ -178,7 +226,6 @@ function drawZodiacFigures(
     ZODIAC_ART[sign](ctx)
     ctx.restore()
 
-    // Sign caption under the figure
     ctx.save()
     ctx.font = '600 13px Fraunces, Georgia, serif'
     ctx.textAlign = 'center'
@@ -204,6 +251,15 @@ export function SkyCanvas({
   objectsRef.current = objects
   const emphasizeZodiacRef = useRef(emphasizeZodiac)
   emphasizeZodiacRef.current = emphasizeZodiac
+  const viewRef = useRef<ViewTransform>({ scale: 1, panX: 0, panY: 0 })
+  const [viewUi, setViewUi] = useState<ViewTransform>(viewRef.current)
+
+  const syncView = (next: ViewTransform, width: number, height: number) => {
+    const clamped = clampView(next, width, height)
+    viewRef.current = clamped
+    setViewUi(clamped)
+    return clamped
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -224,13 +280,16 @@ export function SkyCanvas({
       canvas.width = Math.floor(width * dpr)
       canvas.height = Math.floor(height * dpr)
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      syncView(viewRef.current, width, height)
     }
 
     const draw = () => {
       frame += 1
+      const view = viewRef.current
       const sun = objectsRef.current.find((o) => o.kind === 'sun')
       const tone = skyTone(when, sun?.altitude ?? -90)
 
+      // Full-bleed background (not zoomed)
       const bg = ctx.createLinearGradient(0, 0, 0, height)
       bg.addColorStop(0, tone.top)
       bg.addColorStop(0.55, tone.mid)
@@ -238,43 +297,47 @@ export function SkyCanvas({
       ctx.fillStyle = bg
       ctx.fillRect(0, 0, width, height)
 
-      // Soft horizon glow
       const glow = ctx.createRadialGradient(
-        width / 2,
-        height * 0.92,
+        width / 2 + view.panX,
+        height * 0.92 + view.panY,
         0,
-        width / 2,
-        height * 0.92,
-        Math.min(width, height) * 0.7,
+        width / 2 + view.panX,
+        height * 0.92 + view.panY,
+        Math.min(width, height) * 0.7 * view.scale,
       )
       glow.addColorStop(0, tone.glow)
       glow.addColorStop(1, 'rgba(0,0,0,0)')
       ctx.fillStyle = glow
       ctx.fillRect(0, 0, width, height)
 
-      // Subtle atmospheric vignette / dome edge
+      ctx.save()
+      // Zoom around sky center, then pan
+      const cx = width / 2
+      const cy = height / 2
+      ctx.translate(cx + view.panX, cy + view.panY)
+      ctx.scale(view.scale, view.scale)
+      ctx.translate(-cx, -cy)
+
       const domeR = Math.min(width, height) * 0.48
       ctx.beginPath()
-      ctx.arc(width / 2, height / 2, domeR, 0, Math.PI * 2)
+      ctx.arc(cx, cy, domeR, 0, Math.PI * 2)
       ctx.strokeStyle = 'rgba(180, 200, 230, 0.08)'
-      ctx.lineWidth = 1
+      ctx.lineWidth = 1 / view.scale
       ctx.stroke()
 
-      // Cardinal marks
       ctx.fillStyle = 'rgba(180, 200, 230, 0.35)'
       ctx.font = '500 11px Sora, sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('N', width / 2, height / 2 - domeR - 10)
-      ctx.fillText('S', width / 2, height / 2 + domeR + 18)
+      ctx.fillText('N', cx, cy - domeR - 10)
+      ctx.fillText('S', cx, cy + domeR + 18)
       ctx.textAlign = 'right'
-      ctx.fillText('W', width / 2 - domeR - 10, height / 2 + 4)
+      ctx.fillText('W', cx - domeR - 10, cy + 4)
       ctx.textAlign = 'left'
-      ctx.fillText('E', width / 2 + domeR + 10, height / 2 + 4)
+      ctx.fillText('E', cx + domeR + 10, cy + 4)
 
       const sorted = [...objectsRef.current].sort((a, b) => b.magnitude - a.magnitude)
       const labels: { text: string; x: number; y: number; emphasis: boolean }[] = []
 
-      // Constellation stick figures behind the stars (Zodiac Signs filter).
       if (emphasizeZodiacRef.current) {
         drawZodiacFigures(ctx, objectsRef.current, width, height, frame)
       }
@@ -355,10 +418,11 @@ export function SkyCanvas({
         }
       }
 
-      // Draw labels after markers so names stay readable over nearby stars.
       for (const label of labels) {
         drawLabel(ctx, label.text, label.x, label.y, label.emphasis)
       }
+
+      ctx.restore()
 
       raf = requestAnimationFrame(draw)
     }
@@ -373,38 +437,258 @@ export function SkyCanvas({
     }
   }, [when, selectedId, emphasizeZodiac])
 
-  const handlePointer = (clientX: number, clientY: number) => {
+  useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const rect = canvas.getBoundingClientRect()
-    const x = clientX - rect.left
-    const y = clientY - rect.top
-    const width = rect.width
-    const height = rect.height
 
-    let best: SkyObject | null = null
-    let bestDist = 18
+    let dragging = false
+    let moved = false
+    let lastX = 0
+    let lastY = 0
+    let pinchStartDist = 0
+    let pinchStartScale = 1
 
-    for (const obj of objectsRef.current) {
-      const p = projectToCanvas(obj.altitude, obj.azimuth, width, height)
-      if (!p.visible) continue
-      const d = Math.hypot(p.x - x, p.y - y)
-      const hit =
-        obj.kind === 'sun' || obj.kind === 'moon' ? 22 : obj.kind === 'planet' ? 14 : 10
-      if (d < hit && d < bestDist) {
-        bestDist = d
-        best = obj
+    const size = () => ({
+      width: canvas.clientWidth,
+      height: canvas.clientHeight,
+    })
+
+    const zoomAt = (screenX: number, screenY: number, factor: number) => {
+      const { width, height } = size()
+      const view = viewRef.current
+      const before = screenToWorld(screenX, screenY, view, width, height)
+      const nextScale = clamp(view.scale * factor, MIN_SCALE, MAX_SCALE)
+      const tentative = { ...view, scale: nextScale }
+      // Keep the pointed sky location under the cursor after zooming.
+      const after = worldToScreen(before.x, before.y, tentative, width, height)
+      syncView(
+        {
+          scale: nextScale,
+          panX: view.panX + (screenX - after.x),
+          panY: view.panY + (screenY - after.y),
+        },
+        width,
+        height,
+      )
+    }
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const rect = canvas.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      const { width, height } = size()
+
+      // Pinch-zoom / ctrl+wheel zooms toward the cursor.
+      // Once zoomed, plain scrolling pans so off-screen sky stays reachable.
+      const wantsZoom = e.ctrlKey || e.metaKey || viewRef.current.scale <= 1.001
+
+      if (!wantsZoom) {
+        syncView(
+          {
+            ...viewRef.current,
+            panX: viewRef.current.panX - e.deltaX,
+            panY: viewRef.current.panY - e.deltaY,
+          },
+          width,
+          height,
+        )
+        return
+      }
+
+      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12
+      zoomAt(x, y, factor)
+    }
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.button !== 0) return
+      dragging = true
+      moved = false
+      lastX = e.clientX
+      lastY = e.clientY
+      canvas.setPointerCapture(e.pointerId)
+      canvas.classList.add('is-panning')
+    }
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!dragging) return
+      const dx = e.clientX - lastX
+      const dy = e.clientY - lastY
+      if (Math.hypot(dx, dy) > 3) moved = true
+      lastX = e.clientX
+      lastY = e.clientY
+
+      if (viewRef.current.scale <= 1.001) return
+      const { width, height } = size()
+      syncView(
+        {
+          ...viewRef.current,
+          panX: viewRef.current.panX + dx,
+          panY: viewRef.current.panY + dy,
+        },
+        width,
+        height,
+      )
+    }
+
+    const pickObject = (clientX: number, clientY: number) => {
+      const rect = canvas.getBoundingClientRect()
+      const screenX = clientX - rect.left
+      const screenY = clientY - rect.top
+      const { width, height } = size()
+      const world = screenToWorld(screenX, screenY, viewRef.current, width, height)
+      const hitScale = 1 / viewRef.current.scale
+
+      let best: SkyObject | null = null
+      let bestDist = 18 * hitScale
+
+      for (const obj of objectsRef.current) {
+        const p = projectToCanvas(obj.altitude, obj.azimuth, width, height)
+        if (!p.visible) continue
+        const d = Math.hypot(p.x - world.x, p.y - world.y)
+        const hit =
+          (obj.kind === 'sun' || obj.kind === 'moon'
+            ? 22
+            : obj.kind === 'planet'
+              ? 14
+              : 10) * hitScale
+        if (d < hit && d < bestDist) {
+          bestDist = d
+          best = obj
+        }
+      }
+      onSelect(best)
+    }
+
+    const onPointerUp = (e: PointerEvent) => {
+      if (!dragging) return
+      dragging = false
+      canvas.classList.remove('is-panning')
+      try {
+        canvas.releasePointerCapture(e.pointerId)
+      } catch {
+        // ignore
+      }
+      if (!moved) pickObject(e.clientX, e.clientY)
+    }
+
+    const touchDistance = (touches: TouchList) => {
+      const a = touches[0]
+      const b = touches[1]
+      return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+    }
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        pinchStartDist = touchDistance(e.touches)
+        pinchStartScale = viewRef.current.scale
       }
     }
-    onSelect(best)
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || pinchStartDist <= 0) return
+      e.preventDefault()
+      const rect = canvas.getBoundingClientRect()
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top
+      const dist = touchDistance(e.touches)
+      const nextScale = clamp(
+        pinchStartScale * (dist / pinchStartDist),
+        MIN_SCALE,
+        MAX_SCALE,
+      )
+      const factor = nextScale / viewRef.current.scale
+      if (Number.isFinite(factor) && factor > 0) zoomAt(midX, midY, factor)
+    }
+
+    canvas.addEventListener('wheel', onWheel, { passive: false })
+    canvas.addEventListener('pointerdown', onPointerDown)
+    canvas.addEventListener('pointermove', onPointerMove)
+    canvas.addEventListener('pointerup', onPointerUp)
+    canvas.addEventListener('pointercancel', onPointerUp)
+    canvas.addEventListener('touchstart', onTouchStart, { passive: true })
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false })
+
+    return () => {
+      canvas.removeEventListener('wheel', onWheel)
+      canvas.removeEventListener('pointerdown', onPointerDown)
+      canvas.removeEventListener('pointermove', onPointerMove)
+      canvas.removeEventListener('pointerup', onPointerUp)
+      canvas.removeEventListener('pointercancel', onPointerUp)
+      canvas.removeEventListener('touchstart', onTouchStart)
+      canvas.removeEventListener('touchmove', onTouchMove)
+    }
+  }, [onSelect])
+
+  const bumpZoom = (factor: number) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const width = canvas.clientWidth
+    const height = canvas.clientHeight
+    zoomAtCenter(factor, width, height)
   }
 
+  const zoomAtCenter = (factor: number, width: number, height: number) => {
+    const view = viewRef.current
+    const before = screenToWorld(width / 2, height / 2, view, width, height)
+    const nextScale = clamp(view.scale * factor, MIN_SCALE, MAX_SCALE)
+    const tentative = { ...view, scale: nextScale }
+    const after = worldToScreen(before.x, before.y, tentative, width, height)
+    syncView(
+      {
+        scale: nextScale,
+        panX: view.panX + (width / 2 - after.x),
+        panY: view.panY + (height / 2 - after.y),
+      },
+      width,
+      height,
+    )
+  }
+
+  const resetView = () => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    syncView({ scale: 1, panX: 0, panY: 0 }, canvas.clientWidth, canvas.clientHeight)
+  }
+
+  const zoomPercent = Math.round(viewUi.scale * 100)
+
   return (
-    <canvas
-      ref={canvasRef}
-      className="sky-canvas"
-      aria-label="Interactive sky map"
-      onClick={(e) => handlePointer(e.clientX, e.clientY)}
-    />
+    <div className="sky-stage">
+      <canvas
+        ref={canvasRef}
+        className={`sky-canvas${viewUi.scale > 1.01 ? ' is-zoomable' : ''}`}
+        aria-label="Interactive sky map. Scroll to zoom, drag to pan."
+      />
+      <div className="zoom-controls" role="group" aria-label="Sky zoom">
+        <button
+          type="button"
+          className="zoom-btn"
+          aria-label="Zoom in"
+          onClick={() => bumpZoom(1.2)}
+          disabled={viewUi.scale >= MAX_SCALE - 0.01}
+        >
+          +
+        </button>
+        <button
+          type="button"
+          className="zoom-btn"
+          aria-label="Zoom out"
+          onClick={() => bumpZoom(1 / 1.2)}
+          disabled={viewUi.scale <= MIN_SCALE + 0.01}
+        >
+          −
+        </button>
+        <button
+          type="button"
+          className="zoom-btn zoom-reset"
+          aria-label="Reset zoom"
+          onClick={resetView}
+          disabled={viewUi.scale <= MIN_SCALE + 0.01}
+        >
+          {zoomPercent}%
+        </button>
+      </div>
+    </div>
   )
 }

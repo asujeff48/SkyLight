@@ -43,14 +43,72 @@ select {
   overflow: hidden;
 }
 
-.sky-canvas {
+.sky-stage {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  animation: sky-in 1.2s ease-out both;
+}
+
+.sky-canvas {
   width: 100%;
   height: 100%;
   display: block;
   cursor: crosshair;
-  animation: sky-in 1.2s ease-out both;
+  touch-action: none;
+}
+
+.sky-canvas.is-zoomable {
+  cursor: grab;
+}
+
+.sky-canvas.is-panning {
+  cursor: grabbing;
+}
+
+.zoom-controls {
+  position: absolute;
+  left: clamp(0.75rem, 2vw, 1.25rem);
+  bottom: clamp(2.5rem, 6vw, 3.5rem);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.zoom-btn {
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: 1px solid rgba(180, 200, 230, 0.35);
+  background: rgba(8, 14, 28, 0.78);
+  color: #f2f6fc;
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.zoom-btn:hover:not(:disabled) {
+  border-color: rgba(232, 201, 155, 0.65);
+  color: #fff;
+}
+
+.zoom-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.zoom-btn.zoom-reset {
+  width: auto;
+  min-width: 2.1rem;
+  padding: 0 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
 .hero {
@@ -455,10 +513,14 @@ select {
     flex-direction: column;
   }
 
-  .sky-canvas {
+  .sky-stage {
     position: relative;
     height: min(58vh, 480px);
     flex-shrink: 0;
+  }
+
+  .zoom-controls {
+    bottom: 0.75rem;
   }
 
   .hero {

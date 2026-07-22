@@ -201,7 +201,7 @@ export default function App() {
         )}
       </aside>
 
-      <p className="hint">Tap a star or planet for name &amp; distance</p>
+      <p className="hint">Zoom +, then scroll or drag to explore · tap for details</p>
     </div>
   )
 }
