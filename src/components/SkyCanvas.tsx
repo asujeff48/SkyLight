@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { projectToCanvas, skyTone } from '../astronomy'
+import { ZODIAC_SIGNS } from '../data/zodiac'
+import { ZODIAC_FIGURE_COLORS, ZODIAC_FIGURE_LINES } from '../data/zodiacFigures'
 import type { SkyObject } from '../types'
 
 type Props = {
@@ -92,6 +94,70 @@ function drawLabel(
   ctx.restore()
 }
 
+type ProjectedStar = { x: number; y: number; visible: boolean }
+
+/** Stick-figure outlines connecting zodiac stars, plus a sign caption. */
+function drawZodiacFigures(
+  ctx: CanvasRenderingContext2D,
+  objects: SkyObject[],
+  width: number,
+  height: number,
+  frame: number,
+) {
+  const byName = new Map<string, ProjectedStar>()
+  for (const obj of objects) {
+    if (obj.kind !== 'star' || !obj.name || !obj.zodiacSign) continue
+    const p = projectToCanvas(obj.altitude, obj.azimuth, width, height)
+    byName.set(obj.name, p)
+  }
+
+  const pulse = 0.72 + 0.28 * (0.5 + 0.5 * Math.sin(frame * 0.03))
+
+  for (const sign of ZODIAC_SIGNS) {
+    const lines = ZODIAC_FIGURE_LINES[sign]
+    const color = ZODIAC_FIGURE_COLORS[sign]
+    const points: { x: number; y: number }[] = []
+
+    ctx.save()
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.strokeStyle = color
+    ctx.globalAlpha = pulse
+    ctx.lineWidth = 1.6
+    ctx.shadowColor = color
+    ctx.shadowBlur = 8
+
+    for (const [aName, bName] of lines) {
+      const a = byName.get(aName)
+      const b = byName.get(bName)
+      if (!a?.visible || !b?.visible) continue
+      points.push(a, b)
+      ctx.beginPath()
+      ctx.moveTo(a.x, a.y)
+      ctx.lineTo(b.x, b.y)
+      ctx.stroke()
+    }
+
+    ctx.shadowBlur = 0
+    ctx.globalAlpha = 1
+
+    if (points.length >= 2) {
+      const cx = points.reduce((s, p) => s + p.x, 0) / points.length
+      const cy = points.reduce((s, p) => s + p.y, 0) / points.length
+      ctx.font = '600 12px Fraunces, Georgia, serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.lineWidth = 3.5
+      ctx.strokeStyle = 'rgba(5, 9, 20, 0.65)'
+      ctx.strokeText(sign, cx, cy - 14)
+      ctx.fillStyle = color.replace(/[\d.]+\)$/, '0.95)')
+      ctx.fillText(sign, cx, cy - 14)
+    }
+
+    ctx.restore()
+  }
+}
+
 export function SkyCanvas({
   objects,
   when,
@@ -173,6 +239,11 @@ export function SkyCanvas({
 
       const sorted = [...objectsRef.current].sort((a, b) => b.magnitude - a.magnitude)
       const labels: { text: string; x: number; y: number; emphasis: boolean }[] = []
+
+      // Constellation stick figures behind the stars (Zodiac Signs filter).
+      if (emphasizeZodiacRef.current) {
+        drawZodiacFigures(ctx, objectsRef.current, width, height, frame)
+      }
 
       for (const obj of sorted) {
         const { x, y, visible } = projectToCanvas(obj.altitude, obj.azimuth, width, height)

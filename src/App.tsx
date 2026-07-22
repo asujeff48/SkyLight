@@ -166,7 +166,7 @@ export default function App() {
           {skyFilter === 'zodiac' && (
             <p className="status-line">
               <span className="label">Showing</span>{' '}
-              <strong>Zodiac sign stars</strong>
+              <strong>Zodiac outlines & stars</strong>
             </p>
           )}
         </div>
