@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { projectToCanvas, skyTone } from '../astronomy'
+import { projectToCanvas, skyDomeRadius, skyTone } from '../astronomy'
 import { ZODIAC_ART } from '../data/zodiacArt'
 import { ZODIAC_SIGNS } from '../data/zodiac'
 import { ZODIAC_FIGURE_COLORS, ZODIAC_FIGURE_LINES } from '../data/zodiacFigures'
@@ -324,7 +324,7 @@ export function SkyCanvas({
       ctx.scale(view.scale, view.scale)
       ctx.translate(-cx, -cy)
 
-      const domeR = Math.min(width, height) * 0.48
+      const domeR = skyDomeRadius(width, height)
       ctx.beginPath()
       ctx.arc(cx, cy, domeR, 0, Math.PI * 2)
       ctx.strokeStyle = 'rgba(180, 200, 230, 0.08)'

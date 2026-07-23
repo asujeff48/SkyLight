@@ -136,6 +136,18 @@ export function computeSkyObjects(
   return objects
 }
 
+/** Radius of the zenith-centered sky dome in canvas pixels. */
+export function skyDomeRadius(width: number, height: number): number {
+  const minSide = Math.min(width, height)
+  // Larger screens get a bigger dome; leave a slim rim for cardinal labels.
+  // Phones stay slightly smaller so the bottom dock doesn't clip the horizon.
+  let factor = 0.58
+  if (minSide < 520) factor = 0.5
+  else if (minSide < 820) factor = 0.56
+  else if (minSide >= 1100) factor = 0.64
+  return minSide * factor
+}
+
 /** Stereographic-ish projection of alt/az onto a circular sky dome. */
 export function projectToCanvas(
   altitude: number,
@@ -149,7 +161,7 @@ export function projectToCanvas(
 
   const cx = width / 2
   const cy = height / 2
-  const radius = Math.min(width, height) * 0.48
+  const radius = skyDomeRadius(width, height)
 
   // Zenith at center; horizon at outer rim. Azimuth: 0° north, clockwise.
   const zenithDistance = ((90 - altitude) * Math.PI) / 180
