@@ -1,6 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+/**
+ * LEGACY CONTROL PANEL — pre–Option B layout
+ * (Place dropdown + Use my location + Find a city always visible)
+ *
+ * Rollback:
+ *   cp src/components/LocationPanel.legacy.tsx src/components/LocationPanel.tsx
+ * Then rebuild and redeploy to Railway.
+ *
+ * Kept for easy revert; not imported by the app.
+ */
+import { useState } from 'react'
 import type { GeoLocation, SkyFilter } from '../types'
-import { SKY_FILTERS } from '../types'
+import { PRESET_LOCATIONS, SKY_FILTERS } from '../types'
 import { formatCoords, formatSunTimesSummary } from '../astronomy'
 import { searchCities, type CityMatch } from '../geocode'
 
@@ -23,11 +33,8 @@ function toLocalInputValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-/**
- * Option B layout: current place as the panel header, with Near me / Change place.
- * Prior layout is preserved in LocationPanel.legacy.tsx for rollback.
- */
-export function LocationPanel({
+/** @deprecated Prefer LocationPanel.tsx (Option B). Kept for rollback only. */
+export function LocationPanelLegacy({
   location,
   onLocationChange,
   locating,
@@ -40,25 +47,10 @@ export function LocationPanel({
   onToggleMotion,
   motionStatus,
 }: Props) {
-  const [changingPlace, setChangingPlace] = useState(false)
   const [cityQuery, setCityQuery] = useState('')
   const [matches, setMatches] = useState<CityMatch[]>([])
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
-  const searchRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (changingPlace) {
-      searchRef.current?.focus()
-    }
-  }, [changingPlace])
-
-  const closeSearch = () => {
-    setChangingPlace(false)
-    setCityQuery('')
-    setMatches([])
-    setSearchError(null)
-  }
 
   const lookUpCity = async () => {
     const query = cityQuery.trim()
@@ -91,104 +83,108 @@ export function LocationPanel({
       label: city.label,
       timeZone: city.timeZone,
     })
-    closeSearch()
+    setCityQuery(city.label)
+    setMatches([])
+    setSearchError(null)
   }
 
   return (
     <div className="panel">
-      <header className="place-header" aria-live="polite">
-        <p className="place-kicker">Viewing</p>
-        <h2 className="place-title">{location.label}</h2>
-        <p className="place-meta">
-          <span>{formatCoords(location)}</span>
-          <span className="place-meta-sep" aria-hidden="true">
-            ·
-          </span>
-          <span>{formatSunTimesSummary(location, when)}</span>
-        </p>
-      </header>
+      <div className="panel-row">
+        <label className="field">
+          <span>Place</span>
+          <select
+            value={PRESET_LOCATIONS.find((p) => p.label === location.label)?.label ?? 'custom'}
+            onChange={(e) => {
+              const preset = PRESET_LOCATIONS.find((p) => p.label === e.target.value)
+              if (preset) {
+                onLocationChange(preset)
+                setCityQuery('')
+                setMatches([])
+                setSearchError(null)
+              }
+            }}
+          >
+            {!PRESET_LOCATIONS.some((p) => p.label === location.label) && (
+              <option value="custom">{location.label}</option>
+            )}
+            {PRESET_LOCATIONS.map((p) => (
+              <option key={p.label} value={p.label}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
-      <div className="place-actions">
         <button
           type="button"
-          className="btn ghost place-action"
+          className="btn"
           onClick={onUseMyLocation}
           disabled={locating}
-          title="Detect your current location"
+          title={
+            location.label !== 'My location'
+              ? `Currently showing ${location.label}`
+              : 'Detect your current location'
+          }
         >
-          {locating ? 'Finding…' : 'Near me'}
+          {locating ? 'Finding…' : 'Use my location'}
         </button>
+      </div>
+      {!PRESET_LOCATIONS.some((p) => p.label === location.label) &&
+        location.label !== 'My location' && (
+          <p className="current-place" aria-live="polite">
+            Showing <strong>{location.label}</strong>
+          </p>
+        )}
+
+      <div className="panel-row">
+        <label className="field grow">
+          <span>Find a city</span>
+          <input
+            type="search"
+            name="city"
+            autoComplete="address-level2"
+            placeholder="e.g. Chicago, Mumbai, Cairo"
+            value={cityQuery}
+            onChange={(e) => {
+              setCityQuery(e.target.value)
+              setSearchError(null)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                void lookUpCity()
+              }
+            }}
+          />
+        </label>
         <button
           type="button"
-          className={`btn place-action${changingPlace ? ' ghost' : ''}`}
-          aria-expanded={changingPlace}
-          aria-controls="place-search"
-          onClick={() => {
-            if (changingPlace) closeSearch()
-            else setChangingPlace(true)
-          }}
+          className="btn ghost"
+          onClick={() => void lookUpCity()}
+          disabled={searching}
         >
-          {changingPlace ? 'Cancel' : 'Change place'}
+          {searching ? 'Looking…' : 'Look up'}
         </button>
       </div>
 
-      {changingPlace && (
-        <div id="place-search" className="place-search">
-          <div className="panel-row">
-            <label className="field grow">
-              <span>Search cities</span>
-              <input
-                ref={searchRef}
-                type="search"
-                name="city"
-                autoComplete="address-level2"
-                placeholder="e.g. Chicago, Mumbai, Cairo"
-                value={cityQuery}
-                onChange={(e) => {
-                  setCityQuery(e.target.value)
-                  setSearchError(null)
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    void lookUpCity()
-                  }
-                  if (e.key === 'Escape') {
-                    e.preventDefault()
-                    closeSearch()
-                  }
-                }}
-              />
-            </label>
-            <button
-              type="button"
-              className="btn ghost"
-              onClick={() => void lookUpCity()}
-              disabled={searching}
-            >
-              {searching ? 'Looking…' : 'Look up'}
-            </button>
-          </div>
+      {searchError && <p className="error">{searchError}</p>}
 
-          {searchError && <p className="error">{searchError}</p>}
-
-          {matches.length > 0 && (
-            <ul className="city-results" role="listbox" aria-label="City matches">
-              {matches.map((city) => (
-                <li key={city.id}>
-                  <button
-                    type="button"
-                    className="city-result"
-                    onClick={() => pickCity(city)}
-                  >
-                    <span className="city-result-name">{city.label}</span>
-                    <span className="city-result-detail">{city.detail}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+      {matches.length > 0 && (
+        <ul className="city-results" role="listbox" aria-label="City matches">
+          {matches.map((city) => (
+            <li key={city.id}>
+              <button
+                type="button"
+                className="city-result"
+                onClick={() => pickCity(city)}
+              >
+                <span className="city-result-name">{city.label}</span>
+                <span className="city-result-detail">{city.detail}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
 
       <div className="panel-row">
@@ -244,6 +240,9 @@ export function LocationPanel({
           ))}
         </div>
       </div>
+
+      <p className="coords">{formatCoords(location)}</p>
+      <p className="sun-times">{formatSunTimesSummary(location, when)}</p>
     </div>
   )
 }
