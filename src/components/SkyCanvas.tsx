@@ -87,17 +87,22 @@ function drawLabel(
   x: number,
   y: number,
   emphasis: boolean,
+  fontSize = 11,
 ) {
   ctx.save()
-  ctx.font = `${emphasis ? '600' : '500'} 11px Sora, sans-serif`
+  ctx.font = `${emphasis ? '600' : '500'} ${fontSize}px Sora, sans-serif`
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
-  ctx.lineWidth = 3
-  ctx.strokeStyle = 'rgba(5, 9, 20, 0.72)'
+  ctx.lineWidth = emphasis ? 4 : 3
+  ctx.strokeStyle = 'rgba(5, 9, 20, 0.78)'
   ctx.strokeText(text, x, y)
-  ctx.fillStyle = emphasis ? 'rgba(248, 250, 255, 0.95)' : 'rgba(230, 238, 250, 0.88)'
+  ctx.fillStyle = emphasis ? 'rgba(248, 250, 255, 0.97)' : 'rgba(230, 238, 250, 0.9)'
   ctx.fillText(text, x, y)
   ctx.restore()
+}
+
+function isCoarsePointer(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 }
 
 type ProjectedStar = { x: number; y: number; visible: boolean }
@@ -343,6 +348,10 @@ export function SkyCanvas({
         drawZodiacFigures(ctx, objectsRef.current, width, height, frame)
       }
 
+      const coarse = isCoarsePointer()
+      const labelSize = coarse ? 13 : 11
+      const sizeBoost = coarse ? 1.25 : 1
+
       for (const obj of sorted) {
         const { x, y, visible } = projectToCanvas(obj.altitude, obj.azimuth, width, height)
         if (!visible) continue
@@ -354,13 +363,14 @@ export function SkyCanvas({
         let markerRadius = 3
 
         if (obj.kind === 'sun') {
-          markerRadius = 18
+          markerRadius = 18 * sizeBoost
           drawSun(ctx, x, y, markerRadius)
         } else if (obj.kind === 'moon') {
-          markerRadius = 14
+          markerRadius = 14 * sizeBoost
           drawMoon(ctx, x, y, markerRadius, obj.phase ?? 0.5)
         } else if (obj.kind === 'planet') {
-          markerRadius = obj.magnitude < -1 ? 5.5 : obj.magnitude < 1 ? 4.2 : 3.2
+          markerRadius =
+            (obj.magnitude < -1 ? 5.5 : obj.magnitude < 1 ? 4.2 : 3.2) * sizeBoost
           ctx.beginPath()
           ctx.arc(x, y, markerRadius + (selected ? 2 : 0), 0, Math.PI * 2)
           ctx.fillStyle = obj.color
@@ -379,7 +389,7 @@ export function SkyCanvas({
             ctx.stroke()
           }
         } else {
-          markerRadius = Math.max(0.6, 3.2 - obj.magnitude * 0.55)
+          markerRadius = Math.max(0.9, (3.2 - obj.magnitude * 0.55) * sizeBoost)
           ctx.beginPath()
           ctx.arc(x, y, markerRadius, 0, Math.PI * 2)
           ctx.fillStyle = obj.color
@@ -393,9 +403,9 @@ export function SkyCanvas({
 
         if (selected && obj.kind !== 'sun') {
           ctx.beginPath()
-          ctx.arc(x, y, 14, 0, Math.PI * 2)
-          ctx.strokeStyle = 'rgba(230, 240, 255, 0.45)'
-          ctx.lineWidth = 1
+          ctx.arc(x, y, coarse ? 18 : 14, 0, Math.PI * 2)
+          ctx.strokeStyle = 'rgba(230, 240, 255, 0.55)'
+          ctx.lineWidth = coarse ? 2 : 1
           ctx.stroke()
         }
 
@@ -420,7 +430,7 @@ export function SkyCanvas({
       }
 
       for (const label of labels) {
-        drawLabel(ctx, label.text, label.x, label.y, label.emphasis)
+        drawLabel(ctx, label.text, label.x, label.y, label.emphasis, labelSize)
       }
 
       ctx.restore()
@@ -544,10 +554,12 @@ export function SkyCanvas({
       const screenY = clientY - rect.top
       const { width, height } = size()
       const world = screenToWorld(screenX, screenY, viewRef.current, width, height)
+      const coarse = isCoarsePointer()
       const hitScale = 1 / viewRef.current.scale
+      const touchBoost = coarse ? 1.7 : 1
 
       let best: SkyObject | null = null
-      let bestDist = 18 * hitScale
+      let bestDist = 22 * hitScale * touchBoost
 
       for (const obj of objectsRef.current) {
         const p = projectToCanvas(obj.altitude, obj.azimuth, width, height)
@@ -555,10 +567,12 @@ export function SkyCanvas({
         const d = Math.hypot(p.x - world.x, p.y - world.y)
         const hit =
           (obj.kind === 'sun' || obj.kind === 'moon'
-            ? 22
+            ? 26
             : obj.kind === 'planet'
-              ? 14
-              : 10) * hitScale
+              ? 18
+              : 14) *
+          hitScale *
+          touchBoost
         if (d < hit && d < bestDist) {
           bestDist = d
           best = obj

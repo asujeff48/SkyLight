@@ -11,6 +11,7 @@ const DEFAULT_LOCATION = PRESET_LOCATIONS[0]
 const MOTION_SPAN_MS = 6 * 60 * 60 * 1000
 /** Wall-clock length of one full 6-hour sky replay. */
 const MOTION_CYCLE_MS = 16_000
+const MOBILE_MQ = '(max-width: 720px)'
 
 function formatMotionClock(date: Date, timeZone?: string): string {
   return new Intl.DateTimeFormat(undefined, {
@@ -20,7 +21,24 @@ function formatMotionClock(date: Date, timeZone?: string): string {
   }).format(date)
 }
 
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(MOBILE_MQ).matches : false,
+  )
+
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_MQ)
+    const onChange = () => setIsMobile(mq.matches)
+    onChange()
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  return isMobile
+}
+
 export default function App() {
+  const isMobile = useIsMobile()
   const [location, setLocation] = useState<GeoLocation>(DEFAULT_LOCATION)
   const [when, setWhen] = useState(() => new Date())
   const [locating, setLocating] = useState(false)
@@ -30,6 +48,15 @@ export default function App() {
   const [tick, setTick] = useState(0)
   const [motionOn, setMotionOn] = useState(false)
   const [motionProgress, setMotionProgress] = useState(0)
+  // On phones, keep the sky open and tuck controls away until needed.
+  const [controlsOpen, setControlsOpen] = useState(() =>
+    typeof window !== 'undefined' ? !window.matchMedia(MOBILE_MQ).matches : true,
+  )
+
+  useEffect(() => {
+    if (isMobile) setControlsOpen(false)
+    else setControlsOpen(true)
+  }, [isMobile])
 
   // Keep "live" sky gently updating when viewing "now" (paused during motion)
   useEffect(() => {
@@ -202,7 +229,7 @@ export default function App() {
   }, [])
 
   return (
-    <div className="app">
+    <div className={`app${isMobile ? ' is-mobile' : ''}${controlsOpen ? ' controls-open' : ''}`}>
       <SkyCanvas
         objects={visibleObjects}
         when={displayWhen}
@@ -222,7 +249,59 @@ export default function App() {
         </p>
       </header>
 
-      <aside className="hud">
+      {isMobile && selected && (
+        <div className="identify-card" role="status">
+          <div className="identify-card-top">
+            <span className="kind">{selected.kind}</span>
+            <button
+              type="button"
+              className="identify-dismiss"
+              aria-label="Clear selection"
+              onClick={() => setSelectedId(null)}
+            >
+              Close
+            </button>
+          </div>
+          <strong>{displayName(selected)}</strong>
+          <p className="identify-distance">
+            {formatDistance(selected) ?? 'Distance not known'}
+          </p>
+          <p className="identify-pos">
+            Alt {selected.altitude.toFixed(0)}° · Az {selected.azimuth.toFixed(0)}°
+            {selected.zodiacSign ? ` · ${selected.zodiacSign}` : ''}
+          </p>
+        </div>
+      )}
+
+      {isMobile && (
+        <div className="mobile-dock">
+          <div className="mobile-bar">
+            <div className="mobile-place">
+              <span className="mobile-place-label">Location</span>
+              <strong>{location.label}</strong>
+            </div>
+            <button
+              type="button"
+              className="btn mobile-near"
+              onClick={useMyLocation}
+              disabled={locating}
+            >
+              {locating ? '…' : 'Near me'}
+            </button>
+            <button
+              type="button"
+              className={`btn ghost mobile-controls-toggle${controlsOpen ? ' active' : ''}`}
+              aria-expanded={controlsOpen}
+              onClick={() => setControlsOpen((v) => !v)}
+            >
+              {controlsOpen ? 'Hide' : 'Controls'}
+            </button>
+          </div>
+          {geoError && !controlsOpen && <p className="error mobile-error">{geoError}</p>}
+        </div>
+      )}
+
+      <aside className={`hud${controlsOpen ? ' is-open' : ''}`} hidden={isMobile && !controlsOpen}>
         <LocationPanel
           location={location}
           onLocationChange={setLocation}
@@ -291,7 +370,7 @@ export default function App() {
           )}
         </div>
 
-        {selected && (
+        {selected && !isMobile && (
           <div className="selection" role="status">
             <span className="kind">{selected.kind}</span>
             <strong>{displayName(selected)}</strong>
@@ -322,7 +401,9 @@ export default function App() {
       </aside>
 
       <p className="hint">
-        Zoom +, then use side arrows, scroll, or drag to explore · tap for details
+        {isMobile
+          ? 'Tap a star or planet to identify · pinch to zoom'
+          : 'Zoom +, then use side arrows, scroll, or drag to explore · tap for details'}
       </p>
     </div>
   )

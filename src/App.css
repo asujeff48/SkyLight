@@ -690,44 +690,210 @@ select {
     overflow: auto;
   }
 
-  .app {
+  .app.is-mobile {
     min-height: 100dvh;
-    height: auto;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom, 0);
   }
 
-  .sky-stage {
+  .app.is-mobile .sky-stage {
     position: relative;
-    height: min(58vh, 480px);
-    flex-shrink: 0;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+  }
+
+  .app.is-mobile.controls-open {
+    height: auto;
+    min-height: 100dvh;
+    overflow: auto;
+  }
+
+  .app.is-mobile.controls-open .sky-stage {
+    flex: 0 0 auto;
+    height: min(62vh, 520px);
   }
 
   .zoom-controls {
-    bottom: 0.75rem;
+    left: max(0.75rem, env(safe-area-inset-left, 0px));
+    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
   }
 
-  .pan-btn {
-    width: 2.15rem;
-    height: 2.15rem;
+  .zoom-btn {
+    width: 2.75rem;
+    height: 2.75rem;
     font-size: 1.35rem;
   }
 
+  .zoom-btn.zoom-reset {
+    min-width: 2.75rem;
+    font-size: 0.72rem;
+  }
+
+  .pan-btn {
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.55rem;
+  }
+
+  .pan-horizontal {
+    left: max(0.45rem, env(safe-area-inset-left, 0px));
+  }
+
+  .pan-up {
+    top: max(0.55rem, env(safe-area-inset-top, 0px));
+  }
+
   .pan-down {
-    bottom: 0.65rem;
+    bottom: calc(4.9rem + env(safe-area-inset-bottom, 0px));
   }
 
   .hero {
     position: absolute;
-    padding-right: 1.25rem;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: max(0.85rem, env(safe-area-inset-top, 0px)) 1rem 0.5rem;
+    padding-right: 1rem;
   }
 
   .brand {
-    font-size: clamp(2rem, 10vw, 2.8rem);
+    font-size: clamp(1.7rem, 8vw, 2.3rem);
+    margin-bottom: 0.15rem;
+  }
+
+  .hero h1 {
+    font-size: 0.72rem;
+    max-width: 90%;
   }
 
   .lede {
     display: none;
+  }
+
+  .hint {
+    display: none;
+  }
+
+  .mobile-dock {
+    position: relative;
+    z-index: 5;
+    flex-shrink: 0;
+    padding: 0.55rem 0.75rem calc(0.55rem + env(safe-area-inset-bottom, 0px));
+    background: rgba(6, 10, 20, 0.88);
+    border-top: 1px solid var(--line);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .mobile-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 0.45rem;
+    align-items: center;
+  }
+
+  .mobile-place {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .mobile-place-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mist-dim);
+  }
+
+  .mobile-place strong {
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-near,
+  .mobile-controls-toggle {
+    min-height: 2.75rem;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+  .mobile-controls-toggle.active {
+    border-color: rgba(232, 201, 155, 0.65);
+    color: var(--accent);
+  }
+
+  .mobile-error {
+    margin: 0.45rem 0 0;
+  }
+
+  .identify-card {
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: calc(5.1rem + env(safe-area-inset-bottom, 0px));
+    z-index: 6;
+    padding: 0.75rem 0.85rem;
+    background: rgba(8, 14, 28, 0.92);
+    border: 1px solid rgba(232, 201, 155, 0.45);
+    border-left-width: 3px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    animation: rise 0.28s ease both;
+  }
+
+  .identify-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .identify-card .kind {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .identify-dismiss {
+    border: none;
+    background: transparent;
+    color: var(--mist-dim);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.35rem 0.25rem;
+    min-height: 2.25rem;
+    cursor: pointer;
+  }
+
+  .identify-card strong {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 600;
+    line-height: 1.15;
+  }
+
+  .identify-distance,
+  .identify-pos {
+    margin: 0.25rem 0 0;
+    font-size: 0.84rem;
+    color: var(--mist);
+  }
+
+  .identify-pos {
+    color: var(--mist-dim);
+    font-size: 0.78rem;
   }
 
   .hud {
@@ -735,11 +901,54 @@ select {
     right: auto;
     bottom: auto;
     width: 100%;
-    padding: 0.65rem 0.75rem 1rem;
-    margin-top: -1.75rem;
+    padding: 0 0.75rem 1rem;
+    margin-top: 0;
+    max-height: none;
   }
 
-  .hint {
+  .hud[hidden] {
+    display: none !important;
+  }
+
+  .place-actions .btn,
+  .filter-btn,
+  .btn.motion-btn,
+  .field input,
+  .field select {
+    min-height: 2.75rem;
+  }
+
+  .filter-btn {
+    font-size: 0.78rem;
+    padding: 0.55rem 0.35rem;
+  }
+
+  .place-title {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 720px) and (orientation: landscape) {
+  .app.is-mobile:not(.controls-open) .sky-stage {
+    min-height: 100dvh;
+  }
+
+  .hero .brand {
+    font-size: 1.35rem;
+  }
+
+  .hero h1 {
     display: none;
+  }
+
+  .identify-card {
+    left: auto;
+    right: 0.75rem;
+    width: min(20rem, 46vw);
+    bottom: calc(4.6rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .zoom-controls {
+    bottom: calc(4.2rem + env(safe-area-inset-bottom, 0px));
   }
 }
