@@ -255,6 +255,10 @@ export function SkyCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const objectsRef = useRef(objects)
   objectsRef.current = objects
+  const whenRef = useRef(when)
+  whenRef.current = when
+  const selectedIdRef = useRef(selectedId)
+  selectedIdRef.current = selectedId
   const emphasizeZodiacRef = useRef(emphasizeZodiac)
   emphasizeZodiacRef.current = emphasizeZodiac
   const viewRef = useRef<ViewTransform>({ scale: 1, panX: 0, panY: 0 })
@@ -281,8 +285,16 @@ export function SkyCanvas({
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
-      width = canvas.clientWidth
-      height = canvas.clientHeight
+      const nextWidth = canvas.clientWidth
+      const nextHeight = canvas.clientHeight
+      // Avoid clearing/resizing the buffer when size hasn't changed (motion used to
+      // remount this effect every frame and shrink/flicker the dome).
+      if (nextWidth === width && nextHeight === height && canvas.width > 0) {
+        syncView(viewRef.current, width, height)
+        return
+      }
+      width = nextWidth
+      height = nextHeight
       canvas.width = Math.floor(width * dpr)
       canvas.height = Math.floor(height * dpr)
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -292,8 +304,9 @@ export function SkyCanvas({
     const draw = () => {
       frame += 1
       const view = viewRef.current
+      const selectedIdNow = selectedIdRef.current
       const sun = objectsRef.current.find((o) => o.kind === 'sun')
-      const tone = skyTone(when, sun?.altitude ?? -90)
+      const tone = skyTone(whenRef.current, sun?.altitude ?? -90)
 
       // Full-bleed background (not zoomed)
       const bg = ctx.createLinearGradient(0, 0, 0, height)
@@ -356,7 +369,7 @@ export function SkyCanvas({
         const { x, y, visible } = projectToCanvas(obj.altitude, obj.azimuth, width, height)
         if (!visible) continue
 
-        const selected = obj.id === selectedId
+        const selected = obj.id === selectedIdNow
         const twinkle =
           obj.kind === 'star' ? 0.75 + 0.25 * Math.sin(frame * 0.04 + obj.azimuth) : 1
 
@@ -446,7 +459,9 @@ export function SkyCanvas({
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', resize)
     }
-  }, [when, selectedId, emphasizeZodiac])
+    // Keep this effect mounted across motion time updates — only restart if the
+    // canvas node is replaced. Live values are read from refs each frame.
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
