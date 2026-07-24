@@ -532,6 +532,16 @@ select {
   background: var(--accent);
 }
 
+.motion-speed-block {
+  margin-top: -0.15rem;
+}
+
+.motion-speed-hint {
+  margin: 0.15rem 0 0;
+  font-size: 0.7rem;
+  color: rgba(215, 224, 239, 0.72);
+}
+
 .filter-block {
   display: flex;
   flex-direction: column;

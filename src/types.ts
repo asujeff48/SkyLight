@@ -11,6 +11,24 @@ export type SkyBodyKind = 'star' | 'planet' | 'moon' | 'sun' | 'iss'
 /** What to draw on the sky map. Default view is `all`. */
 export type SkyFilter = 'all' | 'planets' | 'stars' | 'zodiac'
 
+/** How long wall-clock time it takes to replay the last 6 hours of sky. */
+export type MotionSpeedId = 'fast' | 'normal' | 'slow' | 'iss'
+
+export const MOTION_SPEEDS: {
+  id: MotionSpeedId
+  label: string
+  /** Wall-clock ms for one full 6-hour replay loop */
+  cycleMs: number
+  hint: string
+}[] = [
+  { id: 'fast', label: 'Fast', cycleMs: 16_000, hint: '6h in 16s' },
+  { id: 'normal', label: 'Normal', cycleMs: 60_000, hint: '6h in 1 min' },
+  { id: 'slow', label: 'Slow', cycleMs: 180_000, hint: '6h in 3 min' },
+  { id: 'iss', label: 'ISS pace', cycleMs: 360_000, hint: '6h in 6 min' },
+]
+
+export const DEFAULT_MOTION_SPEED: MotionSpeedId = 'normal'
+
 export const SKY_FILTERS: { id: SkyFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'planets', label: 'Planets Only' },
