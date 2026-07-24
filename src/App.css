@@ -316,6 +316,12 @@ select {
   margin-bottom: 0;
 }
 
+.place-search-hint {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  color: rgba(215, 224, 239, 0.78);
+}
+
 .panel-row {
   display: flex;
   gap: 0.5rem;
@@ -477,10 +483,11 @@ select {
 .city-result {
   width: 100%;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.1rem;
-  padding: 0.5rem 0.65rem;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
   text-align: left;
   color: #f2f6fc;
   background: #121a2e;
@@ -497,6 +504,14 @@ select {
   outline: none;
 }
 
+.city-result-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
 .city-result-name {
   font-size: 0.86rem;
   font-weight: 500;
@@ -505,6 +520,16 @@ select {
 .city-result-detail {
   font-size: 0.72rem;
   color: rgba(215, 224, 239, 0.72);
+}
+
+.city-result-go {
+  flex-shrink: 0;
+  padding: 0.28rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #1a140c;
+  background: var(--accent);
 }
 
 .filter-block {
