@@ -164,7 +164,7 @@ export function LocationPanelLegacy({
           onClick={() => void lookUpCity()}
           disabled={searching}
         >
-          {searching ? 'Looking…' : 'Look up'}
+          {searching ? 'Finding…' : 'Find'}
         </button>
       </div>
 

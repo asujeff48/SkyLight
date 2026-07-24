@@ -87,7 +87,7 @@ export function LocationPanel({
         setSearchError('No cities found. Try another spelling.')
         return
       }
-      // One clear match → switch the sky immediately (Look up alone felt incomplete).
+      // One clear match → switch the sky immediately (Find alone felt incomplete).
       if (results.length === 1) {
         pickCity(results[0])
       }
@@ -171,7 +171,7 @@ export function LocationPanel({
               onClick={() => void lookUpCity()}
               disabled={searching}
             >
-              {searching ? 'Looking…' : 'Look up'}
+              {searching ? 'Finding…' : 'Find'}
             </button>
           </div>
 
