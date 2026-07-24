@@ -5,9 +5,9 @@ Interactive night-sky viewer: planets, bright stars, Moon, and Sun drawn for you
 ## Features
 
 - **Live sky map** — zenith-centered dome with altitude/azimuth projection
-- **Your location** — browser geolocation, plus city presets
-- **Time travel** — scrub date/time or jump to now
-- **Celestial bodies** — Sun, Moon (with phase), Mercury–Neptune, and a bright-star catalog
+- **Your location** — browser geolocation, plus city search
+- **Time travel** — scrub date/time, jump to now, or replay the last 6 hours
+- **Celestial bodies** — Sun, Moon (with phase), Mercury–Neptune, bright stars, and the **ISS** when it crosses your sky
 - **Day / twilight / night** — sky tone follows solar altitude
 
 ## Run locally
