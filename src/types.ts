@@ -6,7 +6,7 @@ export type GeoLocation = {
   timeZone?: string
 }
 
-export type SkyBodyKind = 'star' | 'planet' | 'moon' | 'sun'
+export type SkyBodyKind = 'star' | 'planet' | 'moon' | 'sun' | 'iss'
 
 /** What to draw on the sky map. Default view is `all`. */
 export type SkyFilter = 'all' | 'planets' | 'stars' | 'zodiac'
@@ -25,6 +25,7 @@ export function matchesSkyFilter(
   if (filter === 'all') return true
   if (filter === 'stars') return object.kind === 'star'
   if (filter === 'zodiac') return object.kind === 'star' && Boolean(object.zodiacSign)
+  // Planets Only: solar-system planets (not Sun/Moon/ISS)
   return object.kind === 'planet'
 }
 
@@ -48,6 +49,8 @@ export type SkyObject = {
     value: number
     unit: DistanceUnit
   }
+  /** Recent path along a satellite pass (for ISS trail) */
+  trail?: { altitude: number; azimuth: number }[]
 }
 
 export const PRESET_LOCATIONS: GeoLocation[] = [
@@ -66,6 +69,7 @@ export const PRESET_LOCATIONS: GeoLocation[] = [
 const AU_KM = 149_597_870.7
 
 export function displayName(object: SkyObject): string {
+  if (object.kind === 'iss') return 'International Space Station'
   if (object.name) return object.name
   if (object.kind === 'star') return 'Unnamed star'
   return 'Unknown'
