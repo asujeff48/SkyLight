@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { computeSkyObjects } from './astronomy'
 import { SkyCanvas } from './components/SkyCanvas'
 import { LocationPanel } from './components/LocationPanel'
@@ -52,6 +52,8 @@ export default function App() {
   const [controlsOpen, setControlsOpen] = useState(() =>
     typeof window !== 'undefined' ? !window.matchMedia(MOBILE_MQ).matches : true,
   )
+  /** Bumps when the user picks a place so a late GPS fix cannot overwrite it. */
+  const locationChoiceRef = useRef(0)
 
   useEffect(() => {
     if (isMobile) setControlsOpen(false)
@@ -123,11 +125,31 @@ export default function App() {
       : `Motion · ${formatMotionClock(displayWhen, location.timeZone)} · ${hoursAgo.toFixed(1)}h ago`
     : null
 
+  const persistLocation = (next: GeoLocation) => {
+    setLocation(next)
+    try {
+      localStorage.setItem('skyabove:lastLocation', JSON.stringify(next))
+    } catch {
+      // ignore storage failures (private mode, etc.)
+    }
+  }
+
+  /** City search / manual place — wins over any in-flight GPS request. */
+  const chooseLocation = (next: GeoLocation) => {
+    locationChoiceRef.current += 1
+    setLocating(false)
+    setGeoError(null)
+    persistLocation(next)
+  }
+
   const applyBrowserLocation = async (
     latitude: number,
     longitude: number,
-    options?: { quiet?: boolean },
+    options?: { quiet?: boolean; choiceId?: number },
   ) => {
+    const choiceId = options?.choiceId ?? locationChoiceRef.current
+    if (choiceId !== locationChoiceRef.current) return
+
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
     // Show coordinates immediately, then swap in the resolved place name.
     setLocation({
@@ -139,24 +161,19 @@ export default function App() {
 
     try {
       const label = await reverseGeocodeLabel(latitude, longitude)
-      const next = {
+      if (choiceId !== locationChoiceRef.current) return
+      persistLocation({
         latitude,
         longitude,
         label,
         timeZone,
-      }
-      setLocation(next)
-      try {
-        localStorage.setItem('skyabove:lastLocation', JSON.stringify(next))
-      } catch {
-        // ignore storage failures (private mode, etc.)
-      }
+      })
     } catch {
       if (!options?.quiet) {
         setGeoError('Located you, but could not look up the place name.')
       }
     } finally {
-      setLocating(false)
+      if (choiceId === locationChoiceRef.current) setLocating(false)
     }
   }
 
@@ -173,6 +190,7 @@ export default function App() {
       return
     }
 
+    const choiceId = ++locationChoiceRef.current
     setLocating(true)
     if (!options?.quiet) setGeoError(null)
 
@@ -180,9 +198,11 @@ export default function App() {
       (pos) => {
         void applyBrowserLocation(pos.coords.latitude, pos.coords.longitude, {
           quiet: options?.quiet,
+          choiceId,
         })
       },
       (err) => {
+        if (choiceId !== locationChoiceRef.current) return
         setLocating(false)
         // Always explain — silent New York fallback was confusing.
         const hint =
@@ -304,7 +324,7 @@ export default function App() {
       <aside className={`hud${controlsOpen ? ' is-open' : ''}`} hidden={isMobile && !controlsOpen}>
         <LocationPanel
           location={location}
-          onLocationChange={setLocation}
+          onLocationChange={chooseLocation}
           locating={locating}
           onUseMyLocation={useMyLocation}
           when={when}

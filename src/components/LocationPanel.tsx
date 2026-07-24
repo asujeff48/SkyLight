@@ -60,6 +60,16 @@ export function LocationPanel({
     setSearchError(null)
   }
 
+  const pickCity = (city: CityMatch) => {
+    onLocationChange({
+      latitude: city.latitude,
+      longitude: city.longitude,
+      label: city.label,
+      timeZone: city.timeZone,
+    })
+    closeSearch()
+  }
+
   const lookUpCity = async () => {
     const query = cityQuery.trim()
     if (query.length < 2) {
@@ -75,6 +85,11 @@ export function LocationPanel({
       setMatches(results)
       if (results.length === 0) {
         setSearchError('No cities found. Try another spelling.')
+        return
+      }
+      // One clear match → switch the sky immediately (Look up alone felt incomplete).
+      if (results.length === 1) {
+        pickCity(results[0])
       }
     } catch (err) {
       setMatches([])
@@ -82,16 +97,6 @@ export function LocationPanel({
     } finally {
       setSearching(false)
     }
-  }
-
-  const pickCity = (city: CityMatch) => {
-    onLocationChange({
-      latitude: city.latitude,
-      longitude: city.longitude,
-      label: city.label,
-      timeZone: city.timeZone,
-    })
-    closeSearch()
   }
 
   return (
@@ -173,20 +178,28 @@ export function LocationPanel({
           {searchError && <p className="error">{searchError}</p>}
 
           {matches.length > 0 && (
-            <ul className="city-results" role="listbox" aria-label="City matches">
-              {matches.map((city) => (
-                <li key={city.id}>
-                  <button
-                    type="button"
-                    className="city-result"
-                    onClick={() => pickCity(city)}
-                  >
-                    <span className="city-result-name">{city.label}</span>
-                    <span className="city-result-detail">{city.detail}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <>
+              <p className="place-search-hint">
+                Tap View sky on a result to switch the map to that place.
+              </p>
+              <ul className="city-results" role="listbox" aria-label="City matches">
+                {matches.map((city) => (
+                  <li key={city.id}>
+                    <button
+                      type="button"
+                      className="city-result"
+                      onClick={() => pickCity(city)}
+                    >
+                      <span className="city-result-text">
+                        <span className="city-result-name">{city.label}</span>
+                        <span className="city-result-detail">{city.detail}</span>
+                      </span>
+                      <span className="city-result-go">View sky</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </div>
       )}
