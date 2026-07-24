@@ -12,7 +12,8 @@
   "dependencies": {
     "astronomy-engine": "^2.1.19",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "satellite.js": "^5.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",

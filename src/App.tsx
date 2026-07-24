@@ -3,6 +3,7 @@ import { computeSkyObjects } from './astronomy'
 import { SkyCanvas } from './components/SkyCanvas'
 import { LocationPanel } from './components/LocationPanel'
 import { reverseGeocodeLabel } from './geocode'
+import { computeIssSkyObject, ensureIssTle } from './iss'
 import type { GeoLocation, SkyFilter, SkyObject } from './types'
 import { displayName, formatDistance, matchesSkyFilter, PRESET_LOCATIONS } from './types'
 import './App.css'
@@ -54,6 +55,18 @@ export default function App() {
   )
   /** Bumps when the user picks a place so a late GPS fix cannot overwrite it. */
   const locationChoiceRef = useRef(0)
+  /** Orbit catalog ready — recomputes sky with ISS when TLE loads. */
+  const [issReady, setIssReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void ensureIssTle().then(() => {
+      if (!cancelled) setIssReady(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (isMobile) setControlsOpen(false)
@@ -104,10 +117,14 @@ export default function App() {
     return new Date(when.getTime() - MOTION_SPAN_MS + motionProgress * MOTION_SPAN_MS)
   }, [motionOn, when, motionProgress])
 
-  const objects = useMemo(
-    () => computeSkyObjects(location, displayWhen),
-    [location, displayWhen],
-  )
+  const objects = useMemo(() => {
+    const sky = computeSkyObjects(location, displayWhen)
+    if (issReady) {
+      const iss = computeIssSkyObject(location, displayWhen)
+      if (iss) sky.push(iss)
+    }
+    return sky
+  }, [location, displayWhen, issReady])
   const visibleObjects = objects.filter((o) => matchesSkyFilter(o, skyFilter))
   void tick
 
@@ -117,6 +134,7 @@ export default function App() {
   const visiblePlanets = objects.filter((o) => o.kind === 'planet' && o.altitude > 0)
   const sun = objects.find((o) => o.kind === 'sun')
   const moon = objects.find((o) => o.kind === 'moon')
+  const iss = objects.find((o) => o.kind === 'iss')
 
   const hoursAgo = motionOn ? (1 - motionProgress) * 6 : 0
   const motionStatus = motionOn
@@ -272,7 +290,7 @@ export default function App() {
       {isMobile && selected && (
         <div className="identify-card" role="status">
           <div className="identify-card-top">
-            <span className="kind">{selected.kind}</span>
+            <span className="kind">{selected.kind === 'iss' ? 'satellite' : selected.kind}</span>
             <button
               type="button"
               className="identify-dismiss"
@@ -365,6 +383,14 @@ export default function App() {
                     : 'None'}
                 </strong>
               </p>
+              <p className="status-line">
+                <span className="label">ISS</span>{' '}
+                <strong>
+                  {iss
+                    ? `${iss.altitude.toFixed(0)}° up · Az ${iss.azimuth.toFixed(0)}°`
+                    : 'Not in this sky'}
+                </strong>
+              </p>
             </>
           )}
           {skyFilter === 'planets' && (
@@ -392,7 +418,7 @@ export default function App() {
 
         {selected && !isMobile && (
           <div className="selection" role="status">
-            <span className="kind">{selected.kind}</span>
+            <span className="kind">{selected.kind === 'iss' ? 'satellite' : selected.kind}</span>
             <strong>{displayName(selected)}</strong>
             <dl className="selection-facts">
               <div>

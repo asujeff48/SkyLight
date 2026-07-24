@@ -76,9 +76,71 @@ function shouldShowLabel(
   if (!obj.name) return false
   if (selected) return true
   if (obj.kind === 'sun' || obj.kind === 'moon') return true
-  if (obj.kind === 'planet') return true
+  if (obj.kind === 'planet' || obj.kind === 'iss') return true
   if (emphasizeZodiac && obj.zodiacSign) return true
   return obj.magnitude < 2.0
+}
+
+function drawIss(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  selected: boolean,
+  sizeBoost: number,
+) {
+  const r = 5.5 * sizeBoost
+  ctx.save()
+  ctx.translate(x, y)
+
+  // Soft glow
+  ctx.beginPath()
+  ctx.arc(0, 0, r * 2.4, 0, Math.PI * 2)
+  ctx.fillStyle = 'rgba(159, 212, 255, 0.22)'
+  ctx.fill()
+
+  // Solar panels
+  ctx.fillStyle = 'rgba(120, 170, 220, 0.95)'
+  ctx.fillRect(-r * 2.6, -r * 0.35, r * 1.7, r * 0.7)
+  ctx.fillRect(r * 0.9, -r * 0.35, r * 1.7, r * 0.7)
+
+  // Core module
+  ctx.beginPath()
+  ctx.arc(0, 0, r * 0.85, 0, Math.PI * 2)
+  ctx.fillStyle = '#e8f4ff'
+  ctx.fill()
+  ctx.strokeStyle = selected ? 'rgba(255, 255, 255, 0.95)' : 'rgba(180, 220, 255, 0.9)'
+  ctx.lineWidth = selected ? 1.6 : 1.1
+  ctx.stroke()
+
+  ctx.restore()
+}
+
+function drawIssTrail(
+  ctx: CanvasRenderingContext2D,
+  trail: { altitude: number; azimuth: number }[],
+  width: number,
+  height: number,
+) {
+  if (trail.length < 2) return
+  const points = trail
+    .map((p) => projectToCanvas(p.altitude, p.azimuth, width, height))
+    .filter((p) => p.visible)
+  if (points.length < 2) return
+
+  ctx.save()
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.strokeStyle = 'rgba(159, 212, 255, 0.45)'
+  ctx.lineWidth = 1.6
+  ctx.setLineDash([3, 5])
+  ctx.beginPath()
+  ctx.moveTo(points[0].x, points[0].y)
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y)
+  }
+  ctx.stroke()
+  ctx.setLineDash([])
+  ctx.restore()
 }
 
 function drawLabel(
@@ -366,6 +428,12 @@ export function SkyCanvas({
       const sizeBoost = coarse ? 1.25 : 1
 
       for (const obj of sorted) {
+        if (obj.kind === 'iss' && obj.trail?.length) {
+          drawIssTrail(ctx, obj.trail, width, height)
+        }
+      }
+
+      for (const obj of sorted) {
         const { x, y, visible } = projectToCanvas(obj.altitude, obj.azimuth, width, height)
         if (!visible) continue
 
@@ -381,6 +449,9 @@ export function SkyCanvas({
         } else if (obj.kind === 'moon') {
           markerRadius = 14 * sizeBoost
           drawMoon(ctx, x, y, markerRadius, obj.phase ?? 0.5)
+        } else if (obj.kind === 'iss') {
+          markerRadius = 7 * sizeBoost
+          drawIss(ctx, x, y, selected, sizeBoost)
         } else if (obj.kind === 'planet') {
           markerRadius =
             (obj.magnitude < -1 ? 5.5 : obj.magnitude < 1 ? 4.2 : 3.2) * sizeBoost
@@ -428,6 +499,7 @@ export function SkyCanvas({
             obj.kind === 'sun' ||
             obj.kind === 'moon' ||
             obj.kind === 'planet' ||
+            obj.kind === 'iss' ||
             Boolean(emphasizeZodiacRef.current && obj.zodiacSign)
           const text =
             emphasizeZodiacRef.current && obj.zodiacSign
@@ -583,7 +655,7 @@ export function SkyCanvas({
         const hit =
           (obj.kind === 'sun' || obj.kind === 'moon'
             ? 26
-            : obj.kind === 'planet'
+            : obj.kind === 'planet' || obj.kind === 'iss'
               ? 18
               : 14) *
           hitScale *
