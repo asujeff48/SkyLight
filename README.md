@@ -35,3 +35,7 @@ npm run preview
 ## Data
 
 Bright-star RA/Dec/magnitude live in `src/data/stars.ts`. Positions are computed in `src/astronomy.ts`.
+
+## Live site
+
+https://skylight-production-4337.up.railway.app
