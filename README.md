@@ -39,3 +39,4 @@ Bright-star RA/Dec/magnitude live in `src/data/stars.ts`. Positions are computed
 ## Live site
 
 https://skylight-production-4337.up.railway.app
+Autodeploy check 2026-07-24T17:31Z
