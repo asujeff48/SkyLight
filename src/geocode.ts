@@ -99,13 +99,168 @@ const US_STATE_ABBREV: Record<string, string> = {
   'District of Columbia': 'DC',
 }
 
+const US_STATE_BY_ABBREV: Record<string, string> = Object.fromEntries(
+  Object.entries(US_STATE_ABBREV).map(([name, code]) => [code, name]),
+)
+
+/** Longest first so "New York" wins over "York". */
+const US_STATE_NAMES = Object.keys(US_STATE_ABBREV).sort((a, b) => b.length - a.length)
+
+/** Common country suffixes people type after a city ("Rome Italy"). */
+const COMMON_COUNTRY_HINTS = [
+  'United States',
+  'United Kingdom',
+  'South Korea',
+  'North Korea',
+  'New Zealand',
+  'Czech Republic',
+  'Saudi Arabia',
+  'South Africa',
+  'Costa Rica',
+  'Italy',
+  'France',
+  'Spain',
+  'Germany',
+  'Canada',
+  'Mexico',
+  'Brazil',
+  'Argentina',
+  'Chile',
+  'Peru',
+  'Colombia',
+  'Japan',
+  'China',
+  'India',
+  'Australia',
+  'Ireland',
+  'Scotland',
+  'Wales',
+  'England',
+  'Portugal',
+  'Greece',
+  'Turkey',
+  'Egypt',
+  'Morocco',
+  'Nigeria',
+  'Kenya',
+  'Poland',
+  'Sweden',
+  'Norway',
+  'Denmark',
+  'Finland',
+  'Netherlands',
+  'Belgium',
+  'Switzerland',
+  'Austria',
+  'Hungary',
+  'Romania',
+  'Ukraine',
+  'Russia',
+  'Israel',
+  'Lebanon',
+  'Jordan',
+  'Iraq',
+  'Iran',
+  'Pakistan',
+  'Bangladesh',
+  'Thailand',
+  'Vietnam',
+  'Indonesia',
+  'Malaysia',
+  'Singapore',
+  'Philippines',
+  'Taiwan',
+  'Korea',
+].sort((a, b) => b.length - a.length)
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+export type ParsedPlaceQuery = {
+  /** City / place name sent to the geocoder. */
+  name: string
+  /** US state abbreviation when the query included one (e.g. AZ). */
+  stateCode?: string
+  /** Country name when the query ended with one (e.g. Italy). */
+  countryHint?: string
+}
+
+/**
+ * Open-Meteo matches city names, not "Phoenix AZ" / "Rome Italy".
+ * Strip a trailing state or country so Look up can still resolve the place.
+ */
+export function parsePlaceQuery(query: string): ParsedPlaceQuery {
+  const trimmed = query.trim().replace(/\s+/g, ' ')
+  if (!trimmed) return { name: '' }
+
+  const abbrevMatch = trimmed.match(/^(.+?)[, ]+([A-Za-z]{2})$/)
+  if (abbrevMatch) {
+    const code = abbrevMatch[2].toUpperCase()
+    if (US_STATE_BY_ABBREV[code]) {
+      return { name: abbrevMatch[1].trim(), stateCode: code }
+    }
+  }
+
+  for (const stateName of US_STATE_NAMES) {
+    const match = trimmed.match(
+      new RegExp(`^(.+?)[, ]+${escapeRegExp(stateName)}$`, 'i'),
+    )
+    if (match) {
+      return {
+        name: match[1].trim(),
+        stateCode: US_STATE_ABBREV[stateName],
+      }
+    }
+  }
+
+  for (const country of COMMON_COUNTRY_HINTS) {
+    const match = trimmed.match(
+      new RegExp(`^(.+?)[, ]+${escapeRegExp(country)}$`, 'i'),
+    )
+    if (match) {
+      return { name: match[1].trim(), countryHint: country }
+    }
+  }
+
+  return { name: trimmed }
+}
+
 function formatCityLabel(result: OpenMeteoResult): { label: string; detail: string } {
+  const isUs = result.country === 'United States' || result.country === 'USA'
+  if (isUs) {
+    const label = formatUsPlace(result.name, result.admin1)
+    const detail = [result.admin1, result.country].filter(Boolean).join(', ')
+    return { label, detail: detail || label }
+  }
+
   const parts = [result.admin1, result.country].filter(Boolean)
   const detail = parts.join(', ')
   return {
     label: detail ? `${result.name}, ${result.country ?? detail}` : result.name,
     detail: detail || result.name,
   }
+}
+
+function matchesStateHint(result: OpenMeteoResult, stateCode: string): boolean {
+  const code = usStateCode(result.admin1)
+  return code === stateCode
+}
+
+function matchesCountryHint(result: OpenMeteoResult, countryHint: string): boolean {
+  const country = (result.country ?? '').toLowerCase()
+  const hint = countryHint.toLowerCase()
+  if (!country) return false
+  if (country === hint) return true
+  // "Korea" ↔ "South Korea", "United States" ↔ "USA"
+  if (hint === 'korea' && country.includes('korea')) return true
+  if (hint === 'united states' && (country === 'usa' || country.includes('united states'))) {
+    return true
+  }
+  if (hint === 'united kingdom' && (country === 'uk' || country.includes('united kingdom'))) {
+    return true
+  }
+  return country.includes(hint) || hint.includes(country)
 }
 
 function usStateCode(stateNameOrCode?: string): string | undefined {
@@ -222,14 +377,10 @@ export async function reverseGeocodeLabel(
   return 'My location'
 }
 
-/** Look up major cities by name via the free Open-Meteo geocoding API. */
-export async function searchCities(query: string, limit = 6): Promise<CityMatch[]> {
-  const trimmed = query.trim()
-  if (trimmed.length < 2) return []
-
+async function fetchOpenMeteoCities(name: string, count: number): Promise<OpenMeteoResult[]> {
   const url = new URL('https://geocoding-api.open-meteo.com/v1/search')
-  url.searchParams.set('name', trimmed)
-  url.searchParams.set('count', String(Math.max(limit * 3, 12)))
+  url.searchParams.set('name', name)
+  url.searchParams.set('count', String(count))
   url.searchParams.set('language', 'en')
   url.searchParams.set('format', 'json')
 
@@ -239,7 +390,34 @@ export async function searchCities(query: string, limit = 6): Promise<CityMatch[
   }
 
   const data = (await response.json()) as OpenMeteoResponse
-  const results = data.results ?? []
+  return data.results ?? []
+}
+
+/** Look up major cities by name via the free Open-Meteo geocoding API. */
+export async function searchCities(query: string, limit = 6): Promise<CityMatch[]> {
+  const trimmed = query.trim()
+  if (trimmed.length < 2) return []
+
+  const parsed = parsePlaceQuery(trimmed)
+  if (parsed.name.length < 2) return []
+
+  const fetchCount = Math.max(limit * 4, 16)
+  // Prefer the stripped city name when a state/country was typed — the API
+  // returns nothing for queries like "Phoenix AZ" or "Rome Italy".
+  let results = await fetchOpenMeteoCities(parsed.name, fetchCount)
+
+  // If the raw query differed and the stripped search was empty, try once as typed.
+  if (results.length === 0 && parsed.name !== trimmed) {
+    results = await fetchOpenMeteoCities(trimmed, fetchCount)
+  }
+
+  if (parsed.stateCode) {
+    const inState = results.filter((r) => matchesStateHint(r, parsed.stateCode!))
+    if (inState.length > 0) results = inState
+  } else if (parsed.countryHint) {
+    const inCountry = results.filter((r) => matchesCountryHint(r, parsed.countryHint!))
+    if (inCountry.length > 0) results = inCountry
+  }
 
   // Prefer major cities: drop tiny places when larger matches exist.
   const sorted = [...results].sort((a, b) => (b.population ?? 0) - (a.population ?? 0))
