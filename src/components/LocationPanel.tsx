@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import type { GeoLocation, SkyFilter } from '../types'
-import { SKY_FILTERS } from '../types'
+import type { GeoLocation, MotionSpeedId, SkyFilter } from '../types'
+import { MOTION_SPEEDS, SKY_FILTERS } from '../types'
 import { formatCoords, formatSunTimesSummary } from '../astronomy'
 import { searchCities, type CityMatch } from '../geocode'
 
@@ -16,6 +16,8 @@ type Props = {
   motionOn: boolean
   onToggleMotion: () => void
   motionStatus: string | null
+  motionSpeed: MotionSpeedId
+  onMotionSpeedChange: (speed: MotionSpeedId) => void
 }
 
 function toLocalInputValue(date: Date): string {
@@ -39,6 +41,8 @@ export function LocationPanel({
   motionOn,
   onToggleMotion,
   motionStatus,
+  motionSpeed,
+  onMotionSpeedChange,
 }: Props) {
   const [changingPlace, setChangingPlace] = useState(false)
   const [cityQuery, setCityQuery] = useState('')
@@ -239,6 +243,27 @@ export function LocationPanel({
             {motionStatus}
           </p>
         )}
+      </div>
+
+      <div className="filter-block motion-speed-block">
+        <span className="filter-label">Motion speed</span>
+        <div className="filter-group" role="group" aria-label="Motion playback speed">
+          {MOTION_SPEEDS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className={`filter-btn${motionSpeed === option.id ? ' active' : ''}`}
+              aria-pressed={motionSpeed === option.id}
+              title={option.hint}
+              onClick={() => onMotionSpeedChange(option.id)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <p className="motion-speed-hint">
+          {MOTION_SPEEDS.find((s) => s.id === motionSpeed)?.hint ?? ''}
+        </p>
       </div>
 
       <div className="filter-block">

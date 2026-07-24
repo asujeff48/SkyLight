@@ -4,14 +4,19 @@ import { SkyCanvas } from './components/SkyCanvas'
 import { LocationPanel } from './components/LocationPanel'
 import { reverseGeocodeLabel } from './geocode'
 import { computeIssSkyObject, ensureIssTle } from './iss'
-import type { GeoLocation, SkyFilter, SkyObject } from './types'
-import { displayName, formatDistance, matchesSkyFilter, PRESET_LOCATIONS } from './types'
+import type { GeoLocation, MotionSpeedId, SkyFilter, SkyObject } from './types'
+import {
+  DEFAULT_MOTION_SPEED,
+  displayName,
+  formatDistance,
+  matchesSkyFilter,
+  MOTION_SPEEDS,
+  PRESET_LOCATIONS,
+} from './types'
 import './App.css'
 
 const DEFAULT_LOCATION = PRESET_LOCATIONS[0]
 const MOTION_SPAN_MS = 6 * 60 * 60 * 1000
-/** Wall-clock length of one full 6-hour sky replay. */
-const MOTION_CYCLE_MS = 16_000
 const MOBILE_MQ = '(max-width: 720px)'
 
 function formatMotionClock(date: Date, timeZone?: string): string {
@@ -49,6 +54,8 @@ export default function App() {
   const [tick, setTick] = useState(0)
   const [motionOn, setMotionOn] = useState(false)
   const [motionProgress, setMotionProgress] = useState(0)
+  const [motionSpeed, setMotionSpeed] = useState<MotionSpeedId>(DEFAULT_MOTION_SPEED)
+  const motionProgressRef = useRef(0)
   // On phones, keep the sky open and tuck controls away until needed.
   const [controlsOpen, setControlsOpen] = useState(() =>
     typeof window !== 'undefined' ? !window.matchMedia(MOBILE_MQ).matches : true,
@@ -73,6 +80,10 @@ export default function App() {
     else setControlsOpen(true)
   }, [isMobile])
 
+  useEffect(() => {
+    motionProgressRef.current = motionProgress
+  }, [motionProgress])
+
   // Keep "live" sky gently updating when viewing "now" (paused during motion)
   useEffect(() => {
     if (motionOn) return
@@ -88,6 +99,10 @@ export default function App() {
     return () => window.clearInterval(id)
   }, [motionOn])
 
+  const motionCycleMs =
+    MOTION_SPEEDS.find((s) => s.id === motionSpeed)?.cycleMs ??
+    MOTION_SPEEDS.find((s) => s.id === DEFAULT_MOTION_SPEED)!.cycleMs
+
   useEffect(() => {
     if (!motionOn) {
       setMotionProgress(0)
@@ -96,13 +111,15 @@ export default function App() {
 
     let raf = 0
     let lastSample = 0
-    const start = performance.now()
+    // Keep place in the 6h window when changing speed so ISS doesn't jump.
+    const start = performance.now() - motionProgressRef.current * motionCycleMs
 
     const loop = (now: number) => {
       // ~12 fps is enough for sky motion and keeps astronomy work light
       if (now - lastSample >= 80) {
         lastSample = now
-        const u = ((now - start) % MOTION_CYCLE_MS) / MOTION_CYCLE_MS
+        const elapsed = now - start
+        const u = ((elapsed % motionCycleMs) + motionCycleMs) % motionCycleMs / motionCycleMs
         setMotionProgress(u)
       }
       raf = window.requestAnimationFrame(loop)
@@ -110,7 +127,7 @@ export default function App() {
 
     raf = window.requestAnimationFrame(loop)
     return () => window.cancelAnimationFrame(raf)
-  }, [motionOn, when, location.latitude, location.longitude])
+  }, [motionOn, motionCycleMs, when, location.latitude, location.longitude])
 
   const displayWhen = useMemo(() => {
     if (!motionOn) return when
@@ -352,6 +369,8 @@ export default function App() {
           motionOn={motionOn}
           onToggleMotion={() => setMotionOn((v) => !v)}
           motionStatus={motionStatus}
+          motionSpeed={motionSpeed}
+          onMotionSpeedChange={setMotionSpeed}
         />
         {geoError && <p className="error">{geoError}</p>}
 
