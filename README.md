@@ -39,4 +39,23 @@ Bright-star RA/Dec/magnitude live in `src/data/stars.ts`. Positions are computed
 ## Live site
 
 https://skylight-production-4337.up.railway.app
-Autodeploy check 2026-07-24T17:31Z
+
+## Source of truth & deploy
+
+There is **one source of code** and **one user-facing deploy**:
+
+| Role | Where |
+| --- | --- |
+| Source of truth | GitHub `asujeff48/SkyLight`, branch **`main`** |
+| Production (users) | Railway service **skylight**, environment **production**, tracking **`main`** |
+
+**Rule:** if it is not on `main`, it is not in production.
+
+### How changes go live
+
+1. Push commits to GitHub (feature branch is fine while working).
+2. **Merge into `main`** when the change is ready for users. Do not leave finished work only on a PR branch.
+3. Railway **autodeploys** from `main` — wait for the deployment to show Success.
+4. Hard-refresh the live URL before testing.
+
+Do not treat Railway CLI uploads, local builds, or unmerged branches as production. GitHub `main` → Railway is the only path.
