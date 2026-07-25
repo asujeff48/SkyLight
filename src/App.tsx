@@ -419,7 +419,7 @@ export default function App() {
                     ? `${iss.altitude.toFixed(0)}° up · Az ${iss.azimuth.toFixed(0)}°`
                     : nextIssPass
                       ? `Not in this sky · Next pass — ${formatIssPassTime(nextIssPass, location.timeZone)}`
-                      : 'Not in this sky'}
+                      : 'Not in this sky · Next pass — unknown'}
                 </strong>
               </p>
             </>
