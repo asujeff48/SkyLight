@@ -347,15 +347,7 @@ export default function App() {
             </div>
             <button
               type="button"
-              className="btn mobile-near"
-              onClick={useMyLocation}
-              disabled={locating}
-            >
-              {locating ? '…' : 'Near me'}
-            </button>
-            <button
-              type="button"
-              className={`btn ghost mobile-controls-toggle${controlsOpen ? ' active' : ''}`}
+              className={`btn mobile-controls-toggle${controlsOpen ? ' active' : ''}`}
               aria-expanded={controlsOpen}
               onClick={() => setControlsOpen((v) => !v)}
             >
