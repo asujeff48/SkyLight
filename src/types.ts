@@ -30,7 +30,7 @@ export const MOTION_SPEEDS: {
     id: 'iss',
     label: 'Last ISS Pass',
     cycleMs: 360_000,
-    hint: 'Jump to last pass · 6h in 6 min',
+    hint: 'Play last rise→set pass · very slow',
     isPassAction: true,
   },
 ]
