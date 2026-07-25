@@ -150,6 +150,7 @@ function drawLabel(
   y: number,
   emphasis: boolean,
   fontSize = 11,
+  color?: string,
 ) {
   ctx.save()
   ctx.font = `${emphasis ? '600' : '500'} ${fontSize}px Sora, sans-serif`
@@ -158,7 +159,8 @@ function drawLabel(
   ctx.lineWidth = emphasis ? 4 : 3
   ctx.strokeStyle = 'rgba(5, 9, 20, 0.78)'
   ctx.strokeText(text, x, y)
-  ctx.fillStyle = emphasis ? 'rgba(248, 250, 255, 0.97)' : 'rgba(230, 238, 250, 0.9)'
+  ctx.fillStyle =
+    color ?? (emphasis ? 'rgba(248, 250, 255, 0.97)' : 'rgba(230, 238, 250, 0.9)')
   ctx.fillText(text, x, y)
   ctx.restore()
 }
@@ -433,7 +435,13 @@ export function SkyCanvas({
       ctx.fillText('E', cx + domeR + 10, cy + 4)
 
       const sorted = [...objectsRef.current].sort((a, b) => b.magnitude - a.magnitude)
-      const labels: { text: string; x: number; y: number; emphasis: boolean }[] = []
+      const labels: {
+        text: string
+        x: number
+        y: number
+        emphasis: boolean
+        color?: string
+      }[] = []
 
       if (emphasizeZodiacRef.current) {
         drawZodiacFigures(ctx, objectsRef.current, width, height, frame)
@@ -526,12 +534,21 @@ export function SkyCanvas({
             x: x + markerRadius + 6,
             y,
             emphasis,
+            color: obj.kind === 'iss' ? 'rgba(92, 220, 140, 0.98)' : undefined,
           })
         }
       }
 
       for (const label of labels) {
-        drawLabel(ctx, label.text, label.x, label.y, label.emphasis, labelSize)
+        drawLabel(
+          ctx,
+          label.text,
+          label.x,
+          label.y,
+          label.emphasis,
+          labelSize,
+          label.color,
+        )
       }
 
       ctx.restore()
