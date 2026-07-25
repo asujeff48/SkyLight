@@ -2,7 +2,7 @@
   --ink: #050914;
   --mist: #d7e0ef;
   --mist-dim: rgba(215, 224, 239, 0.62);
-  --panel: rgba(8, 14, 28, 0.56);
+  --panel: rgba(8, 14, 28, 0.44);
   --line: rgba(180, 200, 230, 0.16);
   --accent: #e8c99b;
   --font-display: 'Fraunces', Georgia, serif;
@@ -246,8 +246,8 @@ select {
   padding: 0.8rem 0.9rem;
   background: var(--panel);
   border: 1px solid var(--line);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .place-header {
@@ -590,9 +590,9 @@ select {
   display: grid;
   gap: 0.2rem;
   padding: 0.5rem 0.7rem;
-  background: rgba(8, 14, 28, 0.42);
+  background: rgba(8, 14, 28, 0.34);
   border: 1px solid var(--line);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(6px);
 }
 
 .status-line {
@@ -628,7 +628,7 @@ select {
   gap: 0.2rem;
   padding: 0.75rem 1rem;
   border-left: 2px solid var(--accent);
-  background: rgba(8, 14, 28, 0.48);
+  background: rgba(8, 14, 28, 0.38);
   animation: fade 0.35s ease both;
 }
 
