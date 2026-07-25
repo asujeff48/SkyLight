@@ -400,13 +400,29 @@ export function SkyCanvas({
       ctx.translate(-cx, -cy)
 
       const domeR = skyDomeRadius(width, height)
+
+      // Soft outer halo so the sky sphere edge reads on day and night tones.
+      ctx.beginPath()
+      ctx.arc(cx, cy, domeR + 1.5 / view.scale, 0, Math.PI * 2)
+      ctx.strokeStyle = 'rgba(210, 225, 245, 0.1)'
+      ctx.lineWidth = 5 / view.scale
+      ctx.stroke()
+
+      // Main horizon / dome border
       ctx.beginPath()
       ctx.arc(cx, cy, domeR, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(180, 200, 230, 0.08)'
+      ctx.strokeStyle = 'rgba(210, 225, 245, 0.34)'
+      ctx.lineWidth = 1.5 / view.scale
+      ctx.stroke()
+
+      // Inner tick ring — faint sphere cue without crowding labels
+      ctx.beginPath()
+      ctx.arc(cx, cy, domeR * 0.995, 0, Math.PI * 2)
+      ctx.strokeStyle = 'rgba(180, 200, 230, 0.16)'
       ctx.lineWidth = 1 / view.scale
       ctx.stroke()
 
-      ctx.fillStyle = 'rgba(180, 200, 230, 0.35)'
+      ctx.fillStyle = 'rgba(210, 225, 245, 0.55)'
       ctx.font = '500 11px Sora, sans-serif'
       ctx.textAlign = 'center'
       ctx.fillText('N', cx, cy - domeR - 10)
