@@ -351,7 +351,7 @@ export default function App() {
               aria-expanded={controlsOpen}
               onClick={() => setControlsOpen((v) => !v)}
             >
-              {controlsOpen ? 'Hide' : 'Controls'}
+              {controlsOpen ? 'Hide Controls' : 'Controls'}
             </button>
           </div>
           {geoError && !controlsOpen && <p className="error mobile-error">{geoError}</p>}
