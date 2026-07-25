@@ -215,3 +215,94 @@ export function computeIssSkyObject(
     trail,
   }
 }
+
+const PASS_HORIZON_DEG = 0
+const PASS_SEARCH_HOURS = 48
+const PASS_COARSE_STEP_MS = 45_000
+const PASS_FINE_STEP_MS = 5_000
+
+/**
+ * Find the next time the ISS rises above the horizon at this location,
+ * searching forward from `from` (default search window: 48 hours).
+ */
+export function findNextIssPass(location: GeoLocation, from: Date): Date | null {
+  if (!cachedSatrec) return null
+
+  const startMs = from.getTime()
+  const endMs = startMs + PASS_SEARCH_HOURS * 60 * 60 * 1000
+
+  let prevAlt =
+    lookAnglesAt(cachedSatrec, location, from)?.altitude ?? -90
+
+  // Already up — next "pass start" is after this one sets, then rises again.
+  // Callers that only care when it's down can ignore this path; we still
+  // advance to the next rise after a set.
+  for (let t = startMs + PASS_COARSE_STEP_MS; t <= endMs; t += PASS_COARSE_STEP_MS) {
+    const look = lookAnglesAt(cachedSatrec, location, new Date(t))
+    const alt = look?.altitude ?? -90
+
+    if (prevAlt <= PASS_HORIZON_DEG && alt > PASS_HORIZON_DEG) {
+      return refinePassRise(location, t - PASS_COARSE_STEP_MS, t)
+    }
+    prevAlt = alt
+  }
+
+  return null
+}
+
+function refinePassRise(
+  location: GeoLocation,
+  startMs: number,
+  endMs: number,
+): Date | null {
+  if (!cachedSatrec) return null
+
+  let prevAlt =
+    lookAnglesAt(cachedSatrec, location, new Date(startMs))?.altitude ?? -90
+
+  for (let t = startMs + PASS_FINE_STEP_MS; t <= endMs; t += PASS_FINE_STEP_MS) {
+    const look = lookAnglesAt(cachedSatrec, location, new Date(t))
+    const alt = look?.altitude ?? -90
+    if (prevAlt <= PASS_HORIZON_DEG && alt > PASS_HORIZON_DEG) {
+      return new Date(t)
+    }
+    prevAlt = alt
+  }
+
+  return new Date(endMs)
+}
+
+function dayWithOrdinal(day: number): string {
+  const mod100 = day % 100
+  if (mod100 >= 11 && mod100 <= 13) return `${day}th`
+  switch (day % 10) {
+    case 1:
+      return `${day}st`
+    case 2:
+      return `${day}nd`
+    case 3:
+      return `${day}rd`
+    default:
+      return `${day}th`
+  }
+}
+
+/** Format like "July 25th, 4:35 PM" in the place timezone when known. */
+export function formatIssPassTime(when: Date, timeZone?: string): string {
+  const parts = new Intl.DateTimeFormat(undefined, {
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: timeZone || undefined,
+  }).formatToParts(when)
+
+  const month = parts.find((p) => p.type === 'month')?.value ?? ''
+  const day = Number(parts.find((p) => p.type === 'day')?.value ?? 0)
+  const hour = parts.find((p) => p.type === 'hour')?.value ?? ''
+  const minute = parts.find((p) => p.type === 'minute')?.value ?? ''
+  const dayPeriod = parts.find((p) => p.type === 'dayPeriod')?.value
+
+  const time = dayPeriod ? `${hour}:${minute} ${dayPeriod}` : `${hour}:${minute}`
+  return `${month} ${dayWithOrdinal(day)}, ${time}`
+}
