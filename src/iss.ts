@@ -293,6 +293,50 @@ export function findIssPassPeak(location: GeoLocation, rise: Date): Date | null 
   return bestAlt > PASS_HORIZON_DEG ? bestTime : null
 }
 
+/**
+ * Time the ISS sets (drops below the horizon) after a rise.
+ */
+export function findIssPassSet(location: GeoLocation, rise: Date): Date | null {
+  if (!cachedSatrec) return null
+
+  const startMs = rise.getTime()
+  const endMs = startMs + 25 * 60 * 1000
+  let prevAlt =
+    lookAnglesAt(cachedSatrec, location, rise)?.altitude ?? -90
+
+  for (let t = startMs + PASS_COARSE_STEP_MS; t <= endMs; t += PASS_COARSE_STEP_MS) {
+    const look = lookAnglesAt(cachedSatrec, location, new Date(t))
+    const alt = look?.altitude ?? -90
+    if (prevAlt > PASS_HORIZON_DEG && alt <= PASS_HORIZON_DEG) {
+      return refinePassSet(location, t - PASS_COARSE_STEP_MS, t)
+    }
+    prevAlt = alt
+  }
+
+  return null
+}
+
+export type IssPassWindow = {
+  rise: Date
+  set: Date
+  peak: Date
+}
+
+/** Rise, peak, and set for the most recent complete pass before `before`. */
+export function findLastIssPassWindow(
+  location: GeoLocation,
+  before: Date,
+): IssPassWindow | null {
+  const rise = findLastIssPass(location, before)
+  if (!rise) return null
+  const set = findIssPassSet(location, rise)
+  if (!set || set.getTime() <= rise.getTime()) return null
+  // Incomplete / still in progress relative to `before` — skip if set is after before
+  // and rise is the current ongoing pass without a set yet... actually if set exists we're fine.
+  const peak = findIssPassPeak(location, rise) ?? rise
+  return { rise, set, peak }
+}
+
 function refinePassRise(
   location: GeoLocation,
   startMs: number,
@@ -307,6 +351,28 @@ function refinePassRise(
     const look = lookAnglesAt(cachedSatrec, location, new Date(t))
     const alt = look?.altitude ?? -90
     if (prevAlt <= PASS_HORIZON_DEG && alt > PASS_HORIZON_DEG) {
+      return new Date(t)
+    }
+    prevAlt = alt
+  }
+
+  return new Date(endMs)
+}
+
+function refinePassSet(
+  location: GeoLocation,
+  startMs: number,
+  endMs: number,
+): Date | null {
+  if (!cachedSatrec) return null
+
+  let prevAlt =
+    lookAnglesAt(cachedSatrec, location, new Date(startMs))?.altitude ?? 90
+
+  for (let t = startMs + PASS_FINE_STEP_MS; t <= endMs; t += PASS_FINE_STEP_MS) {
+    const look = lookAnglesAt(cachedSatrec, location, new Date(t))
+    const alt = look?.altitude ?? -90
+    if (prevAlt > PASS_HORIZON_DEG && alt <= PASS_HORIZON_DEG) {
       return new Date(t)
     }
     prevAlt = alt

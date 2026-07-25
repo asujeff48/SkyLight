@@ -21,6 +21,9 @@ type Props = {
   onLastIssPass: () => void
   issPassMessage: string | null
   issPassMessageIsError?: boolean
+  issPassChoiceOpen?: boolean
+  onRepeatIssPass?: () => void
+  onReturnFromIssPass?: () => void
 }
 
 function toLocalInputValue(date: Date): string {
@@ -49,6 +52,9 @@ export function LocationPanel({
   onLastIssPass,
   issPassMessage,
   issPassMessageIsError = false,
+  issPassChoiceOpen = false,
+  onRepeatIssPass,
+  onReturnFromIssPass,
 }: Props) {
   const [changingPlace, setChangingPlace] = useState(false)
   const [cityQuery, setCityQuery] = useState('')
@@ -241,8 +247,13 @@ export function LocationPanel({
           className={`btn motion-btn${motionOn ? ' active' : ' ghost'}`}
           aria-pressed={motionOn}
           onClick={onToggleMotion}
+          disabled={issPassChoiceOpen}
         >
-          {motionOn ? 'Stop motion' : 'Play last 6 hours'}
+          {issPassChoiceOpen
+            ? 'ISS pass finished'
+            : motionOn
+              ? 'Stop motion'
+              : 'Play last 6 hours'}
         </button>
         {motionStatus && (
           <p className="motion-status" role="status">
@@ -250,6 +261,20 @@ export function LocationPanel({
           </p>
         )}
       </div>
+
+      {issPassChoiceOpen && (
+        <div className="iss-pass-choice" role="group" aria-label="After ISS pass">
+          <p className="iss-pass-choice-text">What would you like to do next?</p>
+          <div className="iss-pass-choice-actions">
+            <button type="button" className="btn" onClick={onRepeatIssPass}>
+              Repeat ISS Pass
+            </button>
+            <button type="button" className="btn ghost" onClick={onReturnFromIssPass}>
+              Return to Previous View
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="filter-block motion-speed-block">
         <span className="filter-label">Motion speed</span>
@@ -261,6 +286,7 @@ export function LocationPanel({
               className={`filter-btn${motionSpeed === option.id ? ' active' : ''}`}
               aria-pressed={motionSpeed === option.id}
               title={option.hint}
+              disabled={issPassChoiceOpen && !option.isPassAction}
               onClick={() => {
                 if (option.isPassAction) onLastIssPass()
                 else onMotionSpeedChange(option.id)

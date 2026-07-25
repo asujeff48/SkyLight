@@ -546,6 +546,28 @@ select {
   color: #f0a8a8;
 }
 
+.iss-pass-choice {
+  margin: 0 0 0.55rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid rgba(232, 201, 155, 0.45);
+  background: rgba(8, 14, 28, 0.35);
+}
+
+.iss-pass-choice-text {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  color: var(--mist);
+}
+
+.iss-pass-choice-actions {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.iss-pass-choice-actions .btn {
+  width: 100%;
+}
+
 .filter-block {
   display: flex;
   flex-direction: column;
