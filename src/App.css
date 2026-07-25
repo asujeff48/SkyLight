@@ -826,7 +826,7 @@ select {
 
   .mobile-bar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.45rem;
     align-items: center;
   }
@@ -853,7 +853,6 @@ select {
     text-overflow: ellipsis;
   }
 
-  .mobile-near,
   .mobile-controls-toggle {
     min-height: 2.75rem;
     padding: 0.55rem 0.85rem;
@@ -861,7 +860,8 @@ select {
   }
 
   .mobile-controls-toggle.active {
-    border-color: rgba(232, 201, 155, 0.65);
+    background: transparent;
+    border: 1px solid rgba(232, 201, 155, 0.65);
     color: var(--accent);
   }
 
