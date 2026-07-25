@@ -3,7 +3,7 @@ import { computeSkyObjects } from './astronomy'
 import { SkyCanvas } from './components/SkyCanvas'
 import { LocationPanel } from './components/LocationPanel'
 import { reverseGeocodeLabel } from './geocode'
-import { computeIssSkyObject, ensureIssTle } from './iss'
+import { computeIssSkyObject, ensureIssTle, findNextIssPass, formatIssPassTime } from './iss'
 import type { GeoLocation, MotionSpeedId, SkyFilter, SkyObject } from './types'
 import {
   DEFAULT_MOTION_SPEED,
@@ -152,6 +152,16 @@ export default function App() {
   const sun = objects.find((o) => o.kind === 'sun')
   const moon = objects.find((o) => o.kind === 'moon')
   const iss = objects.find((o) => o.kind === 'iss')
+
+  // Next pass is based on the selected time (not motion frames) so playback stays smooth.
+  const nextIssPass = useMemo(() => {
+    if (!issReady) return null
+    const visibleAtWhen = computeIssSkyObject(location, when)
+    const searchFrom = visibleAtWhen
+      ? new Date(when.getTime() + 5 * 60 * 1000)
+      : when
+    return findNextIssPass(location, searchFrom)
+  }, [location, when, issReady])
 
   const hoursAgo = motionOn ? (1 - motionProgress) * 6 : 0
   const motionStatus = motionOn
@@ -407,7 +417,9 @@ export default function App() {
                 <strong>
                   {iss
                     ? `${iss.altitude.toFixed(0)}° up · Az ${iss.azimuth.toFixed(0)}°`
-                    : 'Not in this sky'}
+                    : nextIssPass
+                      ? `Not in this sky · Next pass — ${formatIssPassTime(nextIssPass, location.timeZone)}`
+                      : 'Not in this sky'}
                 </strong>
               </p>
             </>
