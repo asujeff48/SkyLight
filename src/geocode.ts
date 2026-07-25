@@ -25,6 +25,8 @@ type PhotonProperties = {
   country?: string
   countrycode?: string
   type?: string
+  osm_key?: string
+  osm_value?: string
 }
 
 type PhotonResponse = {
@@ -38,6 +40,13 @@ type BigDataCloudResponse = {
   principalSubdivisionCode?: string
   countryName?: string
   countryCode?: string
+  localityInfo?: {
+    administrative?: Array<{
+      name?: string
+      description?: string
+      adminLevel?: number
+    }>
+  }
 }
 
 export type CityMatch = GeoLocation & {
@@ -289,8 +298,33 @@ function formatInternationalPlace(
   return place
 }
 
+/** OSM / Photon feature types that are settlements, not streets or POIs. */
+const PHOTON_SETTLEMENT_TYPES = new Set([
+  'city',
+  'town',
+  'village',
+  'hamlet',
+  'municipality',
+  'locality',
+  'suburb',
+  'neighbourhood',
+  'neighborhood',
+])
+
+function photonSettlementName(props: PhotonProperties): string | null {
+  // Always prefer administrative settlement fields over feature name
+  // (name is often a street, school, park, or building).
+  if (props.city) return props.city
+  if (props.town) return props.town
+  if (props.village) return props.village
+  if (props.name && props.type && PHOTON_SETTLEMENT_TYPES.has(props.type)) {
+    return props.name
+  }
+  return null
+}
+
 function labelFromPhoton(props: PhotonProperties): string | null {
-  const place = props.name || props.city || props.town || props.village
+  const place = photonSettlementName(props)
   if (!place) return null
 
   const countryCode = props.countrycode?.toUpperCase()
@@ -300,12 +334,27 @@ function labelFromPhoton(props: PhotonProperties): string | null {
   return formatInternationalPlace(place, props.state, props.country)
 }
 
+function bigDataCloudTownName(data: BigDataCloudResponse): string | null {
+  // Prefer the city/municipality — not a POI, street, or tiny neighborhood label.
+  if (data.city) return data.city
+
+  const adminCity = data.localityInfo?.administrative
+    ?.filter((a) => a.name && (a.adminLevel === 8 || a.adminLevel === 7))
+    .sort((a, b) => (b.adminLevel ?? 0) - (a.adminLevel ?? 0))
+    .find((a) => a.name)?.name
+  if (adminCity) return adminCity
+
+  if (data.locality) return data.locality
+  return null
+}
+
 function labelFromBigDataCloud(data: BigDataCloudResponse): string | null {
-  // Prefer locality for CDPs (Palm Harbor) when it differs from a nearby city.
+  // Prefer locality when it names a CDP/community (e.g. Palm Harbor) that differs
+  // from the enclosing incorporated city — still never a POI.
   const place =
     data.locality && data.city && data.locality !== data.city
       ? data.locality
-      : data.city || data.locality
+      : bigDataCloudTownName(data)
   if (!place) return null
 
   if (data.countryCode === 'US') {
@@ -353,7 +402,8 @@ async function reverseGeocodeBigDataCloud(
 }
 
 /**
- * Resolve GPS coordinates to a friendly place label (e.g. "Palm Harbor, FL").
+ * Resolve GPS coordinates to a friendly town label (e.g. "Tarpon Springs, FL").
+ * Uses city/town names — not schools, streets, or other POIs.
  * Falls back to "My location" if reverse geocoding is unavailable.
  */
 export async function reverseGeocodeLabel(
@@ -364,7 +414,7 @@ export async function reverseGeocodeLabel(
     const fromPhoton = await reverseGeocodePhoton(latitude, longitude)
     if (fromPhoton) return fromPhoton
   } catch {
-    // try fallback below
+    // try BigDataCloud below
   }
 
   try {
