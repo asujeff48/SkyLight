@@ -542,6 +542,10 @@ select {
   color: rgba(215, 224, 239, 0.72);
 }
 
+.motion-speed-hint.is-error {
+  color: #f0a8a8;
+}
+
 .filter-block {
   display: flex;
   flex-direction: column;

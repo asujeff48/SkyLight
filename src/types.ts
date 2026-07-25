@@ -20,11 +20,19 @@ export const MOTION_SPEEDS: {
   /** Wall-clock ms for one full 6-hour replay loop */
   cycleMs: number
   hint: string
+  /** When true, the control jumps the sky to the last ISS pass instead of only changing speed. */
+  isPassAction?: boolean
 }[] = [
   { id: 'fast', label: 'Fast', cycleMs: 16_000, hint: '6h in 16s' },
   { id: 'normal', label: 'Normal', cycleMs: 60_000, hint: '6h in 1 min' },
   { id: 'slow', label: 'Slow', cycleMs: 180_000, hint: '6h in 3 min' },
-  { id: 'iss', label: 'ISS pace', cycleMs: 360_000, hint: '6h in 6 min' },
+  {
+    id: 'iss',
+    label: 'Last ISS Pass',
+    cycleMs: 360_000,
+    hint: 'Jump to last pass · 6h in 6 min',
+    isPassAction: true,
+  },
 ]
 
 export const DEFAULT_MOTION_SPEED: MotionSpeedId = 'normal'

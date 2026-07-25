@@ -250,6 +250,49 @@ export function findNextIssPass(location: GeoLocation, from: Date): Date | null 
   return null
 }
 
+/**
+ * Most recent ISS rise at this location before `before`
+ * (searches back up to PASS_SEARCH_HOURS).
+ */
+export function findLastIssPass(location: GeoLocation, before: Date): Date | null {
+  if (!cachedSatrec) return null
+
+  const windowStart = new Date(before.getTime() - PASS_SEARCH_HOURS * 60 * 60 * 1000)
+  let lastRise: Date | null = null
+  let cursor = windowStart
+
+  // Walk forward through the window and keep the latest rise still before `before`.
+  while (cursor.getTime() < before.getTime()) {
+    const rise = findNextIssPass(location, cursor)
+    if (!rise || rise.getTime() >= before.getTime()) break
+    lastRise = rise
+    cursor = new Date(rise.getTime() + 8 * 60 * 1000)
+  }
+
+  return lastRise
+}
+
+/** Peak altitude time during a pass that starts at `rise`. */
+export function findIssPassPeak(location: GeoLocation, rise: Date): Date | null {
+  if (!cachedSatrec) return null
+
+  let bestTime = rise
+  let bestAlt = -90
+  const endMs = rise.getTime() + 18 * 60 * 1000
+
+  for (let t = rise.getTime(); t <= endMs; t += 30_000) {
+    const look = lookAnglesAt(cachedSatrec, location, new Date(t))
+    const alt = look?.altitude ?? -90
+    if (alt < PASS_HORIZON_DEG && t > rise.getTime() + 60_000) break
+    if (alt > bestAlt) {
+      bestAlt = alt
+      bestTime = new Date(t)
+    }
+  }
+
+  return bestAlt > PASS_HORIZON_DEG ? bestTime : null
+}
+
 function refinePassRise(
   location: GeoLocation,
   startMs: number,

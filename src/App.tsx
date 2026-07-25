@@ -3,7 +3,15 @@ import { computeSkyObjects } from './astronomy'
 import { SkyCanvas } from './components/SkyCanvas'
 import { LocationPanel } from './components/LocationPanel'
 import { reverseGeocodeLabel } from './geocode'
-import { computeIssSkyObject, ensureIssTle, findNextIssPass, formatIssPassTime } from './iss'
+import {
+  computeIssSkyObject,
+  ensureIssTle,
+  findIssPassPeak,
+  findLastIssPass,
+  findNextIssPass,
+  formatIssPassTime,
+  isIssTleReady,
+} from './iss'
 import type { GeoLocation, MotionSpeedId, SkyFilter, SkyObject } from './types'
 import {
   DEFAULT_MOTION_SPEED,
@@ -55,6 +63,8 @@ export default function App() {
   const [motionOn, setMotionOn] = useState(false)
   const [motionProgress, setMotionProgress] = useState(0)
   const [motionSpeed, setMotionSpeed] = useState<MotionSpeedId>(DEFAULT_MOTION_SPEED)
+  const [issPassMessage, setIssPassMessage] = useState<string | null>(null)
+  const [issPassMessageIsError, setIssPassMessageIsError] = useState(false)
   const motionProgressRef = useRef(0)
   // On phones, keep the sky open and tuck controls away until needed.
   const [controlsOpen, setControlsOpen] = useState(() =>
@@ -169,6 +179,38 @@ export default function App() {
       ? `Motion · ${formatMotionClock(displayWhen, location.timeZone)} (selected time)`
       : `Motion · ${formatMotionClock(displayWhen, location.timeZone)} · ${hoursAgo.toFixed(1)}h ago`
     : null
+
+  const changeMotionSpeed = (speed: MotionSpeedId) => {
+    setIssPassMessage(null)
+    setIssPassMessageIsError(false)
+    setMotionSpeed(speed)
+  }
+
+  const jumpToLastIssPass = () => {
+    if (!issReady || !isIssTleReady()) {
+      setIssPassMessage('No recent ISS pass found for this location.')
+      setIssPassMessageIsError(true)
+      return
+    }
+
+    // Prefer the last pass before "now" so scrubbing into the future still
+    // finds a real historical pass for this place.
+    const searchBefore = new Date(Math.max(when.getTime(), Date.now()))
+    const lastRise = findLastIssPass(location, searchBefore)
+    if (!lastRise) {
+      setIssPassMessage('No recent ISS pass found for this location.')
+      setIssPassMessageIsError(true)
+      return
+    }
+
+    const peak = findIssPassPeak(location, lastRise) ?? lastRise
+    setWhen(peak)
+    setMotionSpeed('iss')
+    setMotionOn(true)
+    setSelectedId('iss')
+    setIssPassMessage(`Last ISS pass — ${formatIssPassTime(peak, location.timeZone)}`)
+    setIssPassMessageIsError(false)
+  }
 
   const persistLocation = (next: GeoLocation) => {
     setLocation(next)
@@ -372,7 +414,10 @@ export default function App() {
           onToggleMotion={() => setMotionOn((v) => !v)}
           motionStatus={motionStatus}
           motionSpeed={motionSpeed}
-          onMotionSpeedChange={setMotionSpeed}
+          onMotionSpeedChange={changeMotionSpeed}
+          onLastIssPass={jumpToLastIssPass}
+          issPassMessage={issPassMessage}
+          issPassMessageIsError={issPassMessageIsError}
         />
         {geoError && <p className="error">{geoError}</p>}
 

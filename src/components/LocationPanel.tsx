@@ -18,6 +18,9 @@ type Props = {
   motionStatus: string | null
   motionSpeed: MotionSpeedId
   onMotionSpeedChange: (speed: MotionSpeedId) => void
+  onLastIssPass: () => void
+  issPassMessage: string | null
+  issPassMessageIsError?: boolean
 }
 
 function toLocalInputValue(date: Date): string {
@@ -43,6 +46,9 @@ export function LocationPanel({
   motionStatus,
   motionSpeed,
   onMotionSpeedChange,
+  onLastIssPass,
+  issPassMessage,
+  issPassMessageIsError = false,
 }: Props) {
   const [changingPlace, setChangingPlace] = useState(false)
   const [cityQuery, setCityQuery] = useState('')
@@ -255,14 +261,22 @@ export function LocationPanel({
               className={`filter-btn${motionSpeed === option.id ? ' active' : ''}`}
               aria-pressed={motionSpeed === option.id}
               title={option.hint}
-              onClick={() => onMotionSpeedChange(option.id)}
+              onClick={() => {
+                if (option.isPassAction) onLastIssPass()
+                else onMotionSpeedChange(option.id)
+              }}
             >
               {option.label}
             </button>
           ))}
         </div>
-        <p className="motion-speed-hint">
-          {MOTION_SPEEDS.find((s) => s.id === motionSpeed)?.hint ?? ''}
+        <p
+          className={`motion-speed-hint${issPassMessageIsError ? ' is-error' : ''}`}
+          role={issPassMessage ? 'status' : undefined}
+        >
+          {issPassMessage ??
+            MOTION_SPEEDS.find((s) => s.id === motionSpeed)?.hint ??
+            ''}
         </p>
       </div>
 
