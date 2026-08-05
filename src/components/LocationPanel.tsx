@@ -21,6 +21,8 @@ type Props = {
   onLastIssPass: () => void
   issPassMessage: string | null
   issPassMessageIsError?: boolean
+  /** Prominent rise→set label while a last-ISS-pass session is active. */
+  issPassSummary?: string | null
   issPassChoiceOpen?: boolean
   onRepeatIssPass?: () => void
   onReturnFromIssPass?: () => void
@@ -52,6 +54,7 @@ export function LocationPanel({
   onLastIssPass,
   issPassMessage,
   issPassMessageIsError = false,
+  issPassSummary = null,
   issPassChoiceOpen = false,
   onRepeatIssPass,
   onReturnFromIssPass,
@@ -262,9 +265,20 @@ export function LocationPanel({
         )}
       </div>
 
+      {issPassSummary && (
+        <div className="iss-pass-banner" role="status" aria-live="polite">
+          <span className="iss-pass-banner-label">Last ISS Pass</span>
+          <strong className="iss-pass-banner-when">{issPassSummary}</strong>
+        </div>
+      )}
+
       {issPassChoiceOpen && (
         <div className="iss-pass-choice" role="group" aria-label="After ISS pass">
-          <p className="iss-pass-choice-text">What would you like to do next?</p>
+          <p className="iss-pass-choice-text">
+            {issPassSummary
+              ? `Pass finished (${issPassSummary}). What would you like to do next?`
+              : 'What would you like to do next?'}
+          </p>
           <div className="iss-pass-choice-actions">
             <button type="button" className="btn" onClick={onRepeatIssPass}>
               Repeat ISS Pass

@@ -396,6 +396,24 @@ function dayWithOrdinal(day: number): string {
   }
 }
 
+function formatIssPassClock(when: Date, timeZone?: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: timeZone || undefined,
+  }).format(when)
+}
+
+function sameCalendarDay(a: Date, b: Date, timeZone?: string): boolean {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: timeZone || undefined,
+  })
+  return fmt.format(a) === fmt.format(b)
+}
+
 /** Format like "July 25th, 4:35 PM" in the place timezone when known. */
 export function formatIssPassTime(when: Date, timeZone?: string): string {
   const parts = new Intl.DateTimeFormat(undefined, {
@@ -414,4 +432,13 @@ export function formatIssPassTime(when: Date, timeZone?: string): string {
 
   const time = dayPeriod ? `${hour}:${minute} ${dayPeriod}` : `${hour}:${minute}`
   return `${month} ${dayWithOrdinal(day)}, ${time}`
+}
+
+/** Rise→set range, e.g. "July 25th, 4:35 PM → 4:42 PM". */
+export function formatIssPassRange(rise: Date, set: Date, timeZone?: string): string {
+  const riseLabel = formatIssPassTime(rise, timeZone)
+  if (sameCalendarDay(rise, set, timeZone)) {
+    return `${riseLabel} → ${formatIssPassClock(set, timeZone)}`
+  }
+  return `${riseLabel} → ${formatIssPassTime(set, timeZone)}`
 }

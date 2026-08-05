@@ -8,6 +8,7 @@ import {
   ensureIssTle,
   findLastIssPassWindow,
   findNextIssPass,
+  formatIssPassRange,
   formatIssPassTime,
   isIssTleReady,
 } from './iss'
@@ -146,7 +147,11 @@ export default function App() {
           if (u >= 1) {
             setMotionOn(false)
             setIssPassChoiceOpen(true)
-            setIssPassMessage('ISS has left this sky.')
+            if (issPassSession) {
+              setIssPassMessage(
+                `Last pass — ${formatIssPassRange(issPassSession.rise, issPassSession.set, location.timeZone)}`,
+              )
+            }
             setIssPassMessageIsError(false)
             return
           }
@@ -161,7 +166,15 @@ export default function App() {
 
     raf = window.requestAnimationFrame(loop)
     return () => window.cancelAnimationFrame(raf)
-  }, [motionOn, motionCycleMs, when, location.latitude, location.longitude, issPassSession])
+  }, [
+    motionOn,
+    motionCycleMs,
+    when,
+    location.latitude,
+    location.longitude,
+    location.timeZone,
+    issPassSession,
+  ])
 
   const displayWhen = useMemo(() => {
     if (issPassSession) {
@@ -203,12 +216,15 @@ export default function App() {
   }, [location, when, issReady])
 
   const hoursAgo = motionOn && !issPassSession ? (1 - motionProgress) * 6 : 0
+  const issPassSummary = issPassSession
+    ? formatIssPassRange(issPassSession.rise, issPassSession.set, location.timeZone)
+    : null
   const motionStatus = issPassSession
     ? motionOn
-      ? `ISS pass · ${formatMotionClock(displayWhen, location.timeZone)}`
+      ? `Now playing · ${formatIssPassTime(displayWhen, location.timeZone)}`
       : issPassChoiceOpen
         ? 'ISS pass finished'
-        : null
+        : `Paused · ${formatIssPassTime(displayWhen, location.timeZone)}`
     : motionOn
       ? hoursAgo < 0.08
         ? `Motion · ${formatMotionClock(displayWhen, location.timeZone)} (selected time)`
@@ -253,7 +269,7 @@ export default function App() {
     setMotionOn(true)
     setSelectedId('iss')
     setIssPassMessage(
-      `ISS pass — ${formatIssPassTime(window.rise, location.timeZone)} → ${formatIssPassTime(window.set, location.timeZone)}`,
+      `Playing last pass — ${formatIssPassRange(window.rise, window.set, location.timeZone)}`,
     )
     setIssPassMessageIsError(false)
   }
@@ -266,7 +282,7 @@ export default function App() {
     setMotionOn(true)
     setSelectedId('iss')
     setIssPassMessage(
-      `ISS pass — ${formatIssPassTime(issPassSession.rise, location.timeZone)} → ${formatIssPassTime(issPassSession.set, location.timeZone)}`,
+      `Playing last pass — ${formatIssPassRange(issPassSession.rise, issPassSession.set, location.timeZone)}`,
     )
     setIssPassMessageIsError(false)
   }
@@ -290,7 +306,11 @@ export default function App() {
       if (motionOn) {
         setMotionOn(false)
         setIssPassChoiceOpen(true)
-        setIssPassMessage('ISS pass paused.')
+        if (issPassSession) {
+          setIssPassMessage(
+            `Paused — ${formatIssPassRange(issPassSession.rise, issPassSession.set, location.timeZone)}`,
+          )
+        }
         setIssPassMessageIsError(false)
       } else if (issPassChoiceOpen) {
         repeatIssPass()
@@ -521,6 +541,7 @@ export default function App() {
           onLastIssPass={jumpToLastIssPass}
           issPassMessage={issPassMessage}
           issPassMessageIsError={issPassMessageIsError}
+          issPassSummary={issPassSummary}
           issPassChoiceOpen={issPassChoiceOpen}
           onRepeatIssPass={repeatIssPass}
           onReturnFromIssPass={returnFromIssPass}
@@ -558,11 +579,15 @@ export default function App() {
               <p className="status-line">
                 <span className="label">ISS</span>{' '}
                 <strong>
-                  {iss
-                    ? `${iss.altitude.toFixed(0)}° up · Az ${iss.azimuth.toFixed(0)}°`
-                    : nextIssPass
-                      ? `Not in this sky · Next pass — ${formatIssPassTime(nextIssPass, location.timeZone)}`
-                      : 'Not in this sky · Next pass — unknown'}
+                  {issPassSummary
+                    ? iss
+                      ? `${iss.altitude.toFixed(0)}° up · Last pass — ${issPassSummary}`
+                      : `Last pass — ${issPassSummary}`
+                    : iss
+                      ? `${iss.altitude.toFixed(0)}° up · Az ${iss.azimuth.toFixed(0)}°`
+                      : nextIssPass
+                        ? `Not in this sky · Next pass — ${formatIssPassTime(nextIssPass, location.timeZone)}`
+                        : 'Not in this sky · Next pass — unknown'}
                 </strong>
               </p>
             </>
