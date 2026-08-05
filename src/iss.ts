@@ -337,6 +337,19 @@ export function findLastIssPassWindow(
   return { rise, set, peak }
 }
 
+/** Rise, peak, and set for the next pass at this location after `from`. */
+export function findNextIssPassWindow(
+  location: GeoLocation,
+  from: Date,
+): IssPassWindow | null {
+  const rise = findNextIssPass(location, from)
+  if (!rise) return null
+  const set = findIssPassSet(location, rise)
+  if (!set || set.getTime() <= rise.getTime()) return null
+  const peak = findIssPassPeak(location, rise) ?? rise
+  return { rise, set, peak }
+}
+
 function refinePassRise(
   location: GeoLocation,
   startMs: number,

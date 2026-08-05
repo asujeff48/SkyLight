@@ -7,7 +7,7 @@ import {
   computeIssSkyObject,
   ensureIssTle,
   findLastIssPassWindow,
-  findNextIssPass,
+  findNextIssPassWindow,
   formatIssPassRange,
   formatIssPassTime,
   isIssTleReady,
@@ -205,15 +205,21 @@ export default function App() {
   const moon = objects.find((o) => o.kind === 'moon')
   const iss = objects.find((o) => o.kind === 'iss')
 
-  // Next pass is based on the selected time (not motion frames) so playback stays smooth.
-  const nextIssPass = useMemo(() => {
+  // Next forecast for the selected place, from wall clock (not motion scrub frames).
+  // `tick` refreshes the forecast on the live-sky interval.
+  const nextIssPassWindow = useMemo(() => {
     if (!issReady) return null
-    const visibleAtWhen = computeIssSkyObject(location, when)
-    const searchFrom = visibleAtWhen
-      ? new Date(when.getTime() + 5 * 60 * 1000)
-      : when
-    return findNextIssPass(location, searchFrom)
-  }, [location, when, issReady])
+    void tick
+    return findNextIssPassWindow(location, new Date())
+  }, [location, issReady, tick])
+
+  const nextIssPassSummary = nextIssPassWindow
+    ? formatIssPassRange(
+        nextIssPassWindow.rise,
+        nextIssPassWindow.set,
+        location.timeZone,
+      )
+    : null
 
   const hoursAgo = motionOn && !issPassSession ? (1 - motionProgress) * 6 : 0
   const issPassSummary = issPassSession
@@ -542,6 +548,7 @@ export default function App() {
           issPassMessage={issPassMessage}
           issPassMessageIsError={issPassMessageIsError}
           issPassSummary={issPassSummary}
+          nextIssPassSummary={nextIssPassSummary}
           issPassChoiceOpen={issPassChoiceOpen}
           onRepeatIssPass={repeatIssPass}
           onReturnFromIssPass={returnFromIssPass}
@@ -585,9 +592,12 @@ export default function App() {
                       : `Last pass — ${issPassSummary}`
                     : iss
                       ? `${iss.altitude.toFixed(0)}° up · Az ${iss.azimuth.toFixed(0)}°`
-                      : nextIssPass
-                        ? `Not in this sky · Next pass — ${formatIssPassTime(nextIssPass, location.timeZone)}`
-                        : 'Not in this sky · Next pass — unknown'}
+                      : 'Not in this sky'}
+                  {nextIssPassSummary
+                    ? ` · Next — ${nextIssPassSummary}`
+                    : issReady
+                      ? ' · Next — unknown'
+                      : ''}
                 </strong>
               </p>
             </>

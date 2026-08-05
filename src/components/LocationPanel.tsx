@@ -23,6 +23,8 @@ type Props = {
   issPassMessageIsError?: boolean
   /** Prominent rise→set label while a last-ISS-pass session is active. */
   issPassSummary?: string | null
+  /** Forecasted next ISS pass rise→set for the selected location, when known. */
+  nextIssPassSummary?: string | null
   issPassChoiceOpen?: boolean
   onRepeatIssPass?: () => void
   onReturnFromIssPass?: () => void
@@ -55,6 +57,7 @@ export function LocationPanel({
   issPassMessage,
   issPassMessageIsError = false,
   issPassSummary = null,
+  nextIssPassSummary = null,
   issPassChoiceOpen = false,
   onRepeatIssPass,
   onReturnFromIssPass,
@@ -264,6 +267,13 @@ export function LocationPanel({
           </p>
         )}
       </div>
+
+      {nextIssPassSummary && (
+        <div className="iss-pass-banner is-next" role="status" aria-live="polite">
+          <span className="iss-pass-banner-label">Next ISS Pass</span>
+          <strong className="iss-pass-banner-when">{nextIssPassSummary}</strong>
+        </div>
+      )}
 
       {issPassSummary && (
         <div className="iss-pass-banner" role="status" aria-live="polite">
