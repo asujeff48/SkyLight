@@ -320,6 +320,17 @@ export type IssPassWindow = {
   rise: Date
   set: Date
   peak: Date
+  /**
+   * ISS distance from Earth (slant range, km) at the closest point of the pass —
+   * i.e. how near overhead it got. Null when the orbit data is unavailable.
+   */
+  peakRangeKm: number | null
+}
+
+/** Slant range (km) from the observer to the ISS at `when`, or null. */
+function issRangeKmAt(location: GeoLocation, when: Date): number | null {
+  if (!cachedSatrec) return null
+  return lookAnglesAt(cachedSatrec, location, when)?.rangeKm ?? null
 }
 
 /** Rise, peak, and set for the most recent complete pass before `before`. */
@@ -334,7 +345,7 @@ export function findLastIssPassWindow(
   // Incomplete / still in progress relative to `before` — skip if set is after before
   // and rise is the current ongoing pass without a set yet... actually if set exists we're fine.
   const peak = findIssPassPeak(location, rise) ?? rise
-  return { rise, set, peak }
+  return { rise, set, peak, peakRangeKm: issRangeKmAt(location, peak) }
 }
 
 /** Rise, peak, and set for the next pass at this location after `from`. */
@@ -347,7 +358,7 @@ export function findNextIssPassWindow(
   const set = findIssPassSet(location, rise)
   if (!set || set.getTime() <= rise.getTime()) return null
   const peak = findIssPassPeak(location, rise) ?? rise
-  return { rise, set, peak }
+  return { rise, set, peak, peakRangeKm: issRangeKmAt(location, peak) }
 }
 
 function refinePassRise(
@@ -454,4 +465,26 @@ export function formatIssPassRange(rise: Date, set: Date, timeZone?: string): st
     return `${riseLabel} → ${formatIssPassClock(set, timeZone)}`
   }
   return `${riseLabel} → ${formatIssPassTime(set, timeZone)}`
+}
+
+/** ISS distance from Earth at closest approach, e.g. "431 km". */
+export function formatIssPassDistance(km: number | null | undefined): string | null {
+  if (km == null || !Number.isFinite(km)) return null
+  return `${Math.round(km).toLocaleString('en-US')} km`
+}
+
+/**
+ * Full "last/next pass" label: rise→set time range plus the ISS distance from
+ * Earth at its closest point, e.g.
+ * "July 25th, 4:35 PM → 4:42 PM · 431 km at closest".
+ */
+export function formatIssPassSummary(
+  rise: Date,
+  set: Date,
+  peakRangeKm: number | null | undefined,
+  timeZone?: string,
+): string {
+  const range = formatIssPassRange(rise, set, timeZone)
+  const distance = formatIssPassDistance(peakRangeKm)
+  return distance ? `${range} · ${distance} at closest` : range
 }
