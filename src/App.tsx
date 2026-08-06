@@ -8,7 +8,7 @@ import {
   ensureIssTle,
   findLastIssPassWindow,
   findNextIssPassWindow,
-  formatIssPassRange,
+  formatIssPassSummary,
   formatIssPassTime,
   isIssTleReady,
 } from './iss'
@@ -32,6 +32,8 @@ const MOBILE_MQ = '(max-width: 720px)'
 type IssPassSession = {
   rise: Date
   set: Date
+  /** ISS distance from Earth (km) at the closest point of this pass. */
+  peakRangeKm: number | null
   previousWhen: Date
   previousSpeed: MotionSpeedId
   previousMotionOn: boolean
@@ -149,7 +151,7 @@ export default function App() {
             setIssPassChoiceOpen(true)
             if (issPassSession) {
               setIssPassMessage(
-                `Last pass — ${formatIssPassRange(issPassSession.rise, issPassSession.set, location.timeZone)}`,
+                `Last pass — ${formatIssPassSummary(issPassSession.rise, issPassSession.set, issPassSession.peakRangeKm, location.timeZone)}`,
               )
             }
             setIssPassMessageIsError(false)
@@ -214,16 +216,22 @@ export default function App() {
   }, [location, issReady, tick])
 
   const nextIssPassSummary = nextIssPassWindow
-    ? formatIssPassRange(
+    ? formatIssPassSummary(
         nextIssPassWindow.rise,
         nextIssPassWindow.set,
+        nextIssPassWindow.peakRangeKm,
         location.timeZone,
       )
     : null
 
   const hoursAgo = motionOn && !issPassSession ? (1 - motionProgress) * 6 : 0
   const issPassSummary = issPassSession
-    ? formatIssPassRange(issPassSession.rise, issPassSession.set, location.timeZone)
+    ? formatIssPassSummary(
+        issPassSession.rise,
+        issPassSession.set,
+        issPassSession.peakRangeKm,
+        location.timeZone,
+      )
     : null
   const motionStatus = issPassSession
     ? motionOn
@@ -262,6 +270,7 @@ export default function App() {
     setIssPassSession({
       rise: window.rise,
       set: window.set,
+      peakRangeKm: window.peakRangeKm,
       previousWhen: issPassSession?.previousWhen ?? when,
       previousSpeed:
         issPassSession?.previousSpeed ??
@@ -275,7 +284,7 @@ export default function App() {
     setMotionOn(true)
     setSelectedId('iss')
     setIssPassMessage(
-      `Playing last pass — ${formatIssPassRange(window.rise, window.set, location.timeZone)}`,
+      `Playing last pass — ${formatIssPassSummary(window.rise, window.set, window.peakRangeKm, location.timeZone)}`,
     )
     setIssPassMessageIsError(false)
   }
@@ -288,7 +297,7 @@ export default function App() {
     setMotionOn(true)
     setSelectedId('iss')
     setIssPassMessage(
-      `Playing last pass — ${formatIssPassRange(issPassSession.rise, issPassSession.set, location.timeZone)}`,
+      `Playing last pass — ${formatIssPassSummary(issPassSession.rise, issPassSession.set, issPassSession.peakRangeKm, location.timeZone)}`,
     )
     setIssPassMessageIsError(false)
   }
@@ -314,7 +323,7 @@ export default function App() {
         setIssPassChoiceOpen(true)
         if (issPassSession) {
           setIssPassMessage(
-            `Paused — ${formatIssPassRange(issPassSession.rise, issPassSession.set, location.timeZone)}`,
+            `Paused — ${formatIssPassSummary(issPassSession.rise, issPassSession.set, issPassSession.peakRangeKm, location.timeZone)}`,
           )
         }
         setIssPassMessageIsError(false)
