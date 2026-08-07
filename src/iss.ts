@@ -467,16 +467,19 @@ export function formatIssPassRange(rise: Date, set: Date, timeZone?: string): st
   return `${riseLabel} → ${formatIssPassTime(set, timeZone)}`
 }
 
-/** ISS distance from Earth at closest approach, e.g. "431 km". */
+const KM_TO_MILES = 0.621371
+
+/** ISS distance from Earth at closest approach, e.g. "268 mi". */
 export function formatIssPassDistance(km: number | null | undefined): string | null {
   if (km == null || !Number.isFinite(km)) return null
-  return `${Math.round(km).toLocaleString('en-US')} km`
+  const miles = km * KM_TO_MILES
+  return `${Math.round(miles).toLocaleString('en-US')} mi`
 }
 
 /**
  * Full "last/next pass" label: rise→set time range plus the ISS distance from
  * Earth at its closest point, e.g.
- * "July 25th, 4:35 PM → 4:42 PM · 431 km at closest".
+ * "July 25th, 4:35 PM → 4:42 PM · 268 mi at closest".
  */
 export function formatIssPassSummary(
   rise: Date,
