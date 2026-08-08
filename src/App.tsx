@@ -84,6 +84,8 @@ export default function App() {
   const [sheetDragY, setSheetDragY] = useState(0)
   const [sheetDragging, setSheetDragging] = useState(false)
   const sheetDragStart = useRef<number | null>(null)
+  // Latest drag offset, read at drag end (state closures would be stale).
+  const sheetDragYRef = useRef(0)
   // On phones, keep the sky open and tuck controls away until needed.
   const [controlsOpen, setControlsOpen] = useState(() =>
     typeof window !== 'undefined' ? !window.matchMedia(MOBILE_MQ).matches : true,
@@ -482,19 +484,23 @@ export default function App() {
 
   const beginSheetDrag = (clientY: number) => {
     sheetDragStart.current = clientY
+    sheetDragYRef.current = 0
     setSheetDragging(true)
     setSheetDragY(0)
   }
 
   const moveSheetDrag = (clientY: number) => {
     if (sheetDragStart.current == null) return
-    setSheetDragY(Math.max(0, clientY - sheetDragStart.current))
+    const dy = Math.max(0, clientY - sheetDragStart.current)
+    sheetDragYRef.current = dy
+    setSheetDragY(dy)
   }
 
   const endSheetDrag = () => {
     if (sheetDragStart.current == null) return
-    const dragged = sheetDragY
+    const dragged = sheetDragYRef.current
     sheetDragStart.current = null
+    sheetDragYRef.current = 0
     setSheetDragging(false)
     setSheetDragY(0)
     if (dragged > SHEET_DISMISS_PX) setControlsOpen(false)
