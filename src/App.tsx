@@ -577,15 +577,19 @@ export default function App() {
         {isMobile && (
           <div
             className="sheet-header"
-            onTouchStart={(e) => beginSheetDrag(e.touches[0].clientY)}
-            onTouchMove={(e) => moveSheetDrag(e.touches[0].clientY)}
-            onTouchEnd={endSheetDrag}
-            onTouchCancel={endSheetDrag}
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture?.(e.pointerId)
+              beginSheetDrag(e.clientY)
+            }}
+            onPointerMove={(e) => moveSheetDrag(e.clientY)}
+            onPointerUp={endSheetDrag}
+            onPointerCancel={endSheetDrag}
           >
             <span className="sheet-grip" aria-hidden="true" />
             <button
               type="button"
               className="btn ghost sheet-hide"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={() => setControlsOpen(false)}
             >
               Hide Controls
