@@ -25,6 +25,8 @@ type Props = {
   issPassSummary?: string | null
   /** Forecasted next ISS pass rise→set for the selected location, when known. */
   nextIssPassSummary?: string | null
+  /** Hide the Viewing place header (e.g. mobile dock already shows it). */
+  hidePlaceHeader?: boolean
   issPassChoiceOpen?: boolean
   onRepeatIssPass?: () => void
   onReturnFromIssPass?: () => void
@@ -58,6 +60,7 @@ export function LocationPanel({
   issPassMessageIsError = false,
   issPassSummary = null,
   nextIssPassSummary = null,
+  hidePlaceHeader = false,
   issPassChoiceOpen = false,
   onRepeatIssPass,
   onReturnFromIssPass,
@@ -122,18 +125,20 @@ export function LocationPanel({
   }
 
   return (
-    <div className="panel">
-      <header className="place-header" aria-live="polite">
-        <p className="place-kicker">Viewing</p>
-        <h2 className="place-title">{location.label}</h2>
-        <p className="place-meta">
-          <span>{formatCoords(location)}</span>
-          <span className="place-meta-sep" aria-hidden="true">
-            ·
-          </span>
-          <span>{formatSunTimesSummary(location, when)}</span>
-        </p>
-      </header>
+    <div className={`panel${hidePlaceHeader ? ' panel-compact' : ''}`}>
+      {!hidePlaceHeader && (
+        <header className="place-header" aria-live="polite">
+          <p className="place-kicker">Viewing</p>
+          <h2 className="place-title">{location.label}</h2>
+          <p className="place-meta">
+            <span>{formatCoords(location)}</span>
+            <span className="place-meta-sep" aria-hidden="true">
+              ·
+            </span>
+            <span>{formatSunTimesSummary(location, when)}</span>
+          </p>
+        </header>
+      )}
 
       <div className="place-actions">
         <button

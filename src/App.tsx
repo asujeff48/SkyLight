@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { computeSkyObjects } from './astronomy'
+import { computeSkyObjects, formatCoords, formatSunTimesSummary } from './astronomy'
 import { SkyCanvas } from './components/SkyCanvas'
 import { LocationPanel } from './components/LocationPanel'
 import { reverseGeocodeLabel } from './geocode'
@@ -45,6 +45,27 @@ function formatMotionClock(date: Date, timeZone?: string): string {
     minute: '2-digit',
     timeZone: timeZone || undefined,
   }).format(date)
+}
+
+/** Compact label for the sky view time, e.g. "Aug 8, 2026 · 1:23 PM". */
+function formatViewWhen(date: Date, timeZone?: string): string {
+  const parts = new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: timeZone || undefined,
+  }).formatToParts(date)
+
+  const month = parts.find((p) => p.type === 'month')?.value ?? ''
+  const day = parts.find((p) => p.type === 'day')?.value ?? ''
+  const year = parts.find((p) => p.type === 'year')?.value ?? ''
+  const hour = parts.find((p) => p.type === 'hour')?.value ?? ''
+  const minute = parts.find((p) => p.type === 'minute')?.value ?? ''
+  const dayPeriod = parts.find((p) => p.type === 'dayPeriod')?.value
+  const time = dayPeriod ? `${hour}:${minute} ${dayPeriod}` : `${hour}:${minute}`
+  return `${month} ${day}, ${year} · ${time}`
 }
 
 function useIsMobile(): boolean {
@@ -484,7 +505,13 @@ export default function App() {
       />
 
       <header className="hero">
-        <p className="brand">SkyAbove</p>
+        <div className="hero-top">
+          <p className="brand">SkyAbove</p>
+          <p className="hero-when" aria-live="polite">
+            <span className="hero-when-label">Date & time</span>
+            <strong>{formatViewWhen(displayWhen, location.timeZone)}</strong>
+          </p>
+        </div>
         <h1>
           The sky above <span className="place-name">{location.label}</span>
         </h1>
@@ -522,8 +549,15 @@ export default function App() {
         <div className="mobile-dock">
           <div className="mobile-bar">
             <div className="mobile-place">
-              <span className="mobile-place-label">Location</span>
+              <span className="mobile-place-label">Viewing</span>
               <strong>{location.label}</strong>
+              <span className="mobile-place-meta">
+                {formatCoords(location)}
+                <span className="place-meta-sep" aria-hidden="true">
+                  ·
+                </span>
+                {formatSunTimesSummary(location, displayWhen)}
+              </span>
             </div>
             <button
               type="button"
@@ -556,6 +590,7 @@ export default function App() {
           onLastIssPass={jumpToLastIssPass}
           issPassMessage={issPassMessage}
           issPassMessageIsError={issPassMessageIsError}
+          hidePlaceHeader={isMobile}
           issPassSummary={issPassSummary}
           nextIssPassSummary={nextIssPassSummary}
           issPassChoiceOpen={issPassChoiceOpen}
