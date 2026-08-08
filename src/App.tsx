@@ -80,6 +80,10 @@ export default function App() {
   const [issPassSession, setIssPassSession] = useState<IssPassSession | null>(null)
   const [issPassChoiceOpen, setIssPassChoiceOpen] = useState(false)
   const motionProgressRef = useRef(0)
+  // Mobile: drag the controls sheet downward to push it out of the way.
+  const [sheetDragY, setSheetDragY] = useState(0)
+  const [sheetDragging, setSheetDragging] = useState(false)
+  const sheetDragStart = useRef<number | null>(null)
   // On phones, keep the sky open and tuck controls away until needed.
   const [controlsOpen, setControlsOpen] = useState(() =>
     typeof window !== 'undefined' ? !window.matchMedia(MOBILE_MQ).matches : true,
@@ -473,6 +477,29 @@ export default function App() {
     requestBrowserLocation({ quiet: true, highAccuracy: false, timeout: 12_000 })
   }, [])
 
+  // Drag distance past which releasing dismisses the mobile controls sheet.
+  const SHEET_DISMISS_PX = 90
+
+  const beginSheetDrag = (clientY: number) => {
+    sheetDragStart.current = clientY
+    setSheetDragging(true)
+    setSheetDragY(0)
+  }
+
+  const moveSheetDrag = (clientY: number) => {
+    if (sheetDragStart.current == null) return
+    setSheetDragY(Math.max(0, clientY - sheetDragStart.current))
+  }
+
+  const endSheetDrag = () => {
+    if (sheetDragStart.current == null) return
+    const dragged = sheetDragY
+    sheetDragStart.current = null
+    setSheetDragging(false)
+    setSheetDragY(0)
+    if (dragged > SHEET_DISMISS_PX) setControlsOpen(false)
+  }
+
   return (
     <div className={`app${isMobile ? ' is-mobile' : ''}${controlsOpen ? ' controls-open' : ''}`}>
       <SkyCanvas
@@ -538,7 +565,33 @@ export default function App() {
         </div>
       )}
 
-      <aside className={`hud${controlsOpen ? ' is-open' : ''}`} hidden={isMobile && !controlsOpen}>
+      <aside
+        className={`hud${controlsOpen ? ' is-open' : ''}${sheetDragging ? ' is-dragging' : ''}`}
+        hidden={isMobile && !controlsOpen}
+        style={
+          isMobile && controlsOpen && sheetDragY > 0
+            ? { transform: `translateY(${sheetDragY}px)` }
+            : undefined
+        }
+      >
+        {isMobile && (
+          <div
+            className="sheet-header"
+            onTouchStart={(e) => beginSheetDrag(e.touches[0].clientY)}
+            onTouchMove={(e) => moveSheetDrag(e.touches[0].clientY)}
+            onTouchEnd={endSheetDrag}
+            onTouchCancel={endSheetDrag}
+          >
+            <span className="sheet-grip" aria-hidden="true" />
+            <button
+              type="button"
+              className="btn ghost sheet-hide"
+              onClick={() => setControlsOpen(false)}
+            >
+              Hide Controls
+            </button>
+          </div>
+        )}
         <LocationPanel
           location={location}
           onLocationChange={chooseLocation}

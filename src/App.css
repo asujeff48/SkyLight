@@ -780,6 +780,15 @@ select {
   }
 }
 
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 720px) {
   body {
     overflow: auto;
@@ -802,14 +811,11 @@ select {
   }
 
   .app.is-mobile.controls-open {
-    height: auto;
+    /* Sky stays full-screen; the controls ride above it as a draggable sheet
+       the user can push down out of the way (in addition to Hide Controls). */
+    height: 100dvh;
     min-height: 100dvh;
-    overflow: auto;
-  }
-
-  .app.is-mobile.controls-open .sky-stage {
-    flex: 0 0 auto;
-    height: min(62vh, 520px);
+    overflow: hidden;
   }
 
   .zoom-controls {
@@ -991,18 +997,72 @@ select {
     font-size: 0.78rem;
   }
 
-  .hud {
-    position: relative;
-    right: auto;
-    bottom: auto;
+  .app.is-mobile .hud {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    z-index: 30;
     width: 100%;
-    padding: 0 0.75rem 1rem;
+    max-height: 82dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0 0.75rem calc(1rem + env(safe-area-inset-bottom, 0px));
     margin-top: 0;
-    max-height: none;
+    background: rgba(6, 10, 20, 0.97);
+    border-top: 1px solid var(--line);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -14px 34px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: transform 0.2s ease;
+    touch-action: pan-y;
+    animation: sheet-up 0.24s ease both;
+  }
+
+  /* While actively dragging, follow the finger with no easing lag. */
+  .app.is-mobile .hud.is-dragging {
+    transition: none;
+    animation: none;
   }
 
   .hud[hidden] {
     display: none !important;
+  }
+
+  .sheet-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-height: 2.5rem;
+    margin: 0 -0.75rem 0.35rem;
+    padding: 0.5rem 0.75rem 0.4rem;
+    background: rgba(6, 10, 20, 0.97);
+    border-radius: 18px 18px 0 0;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .sheet-grip {
+    position: absolute;
+    left: 50%;
+    top: 0.5rem;
+    transform: translateX(-50%);
+    width: 2.75rem;
+    height: 0.3rem;
+    border-radius: 999px;
+    background: rgba(200, 215, 240, 0.55);
+    pointer-events: none;
+  }
+
+  .sheet-hide {
+    min-height: 2.1rem;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.78rem;
   }
 
   .place-actions .btn,
