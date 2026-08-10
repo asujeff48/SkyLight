@@ -139,13 +139,16 @@ export function computeSkyObjects(
 /** Radius of the zenith-centered sky dome in canvas pixels. */
 export function skyDomeRadius(width: number, height: number): number {
   const minSide = Math.min(width, height)
-  // Larger screens get a bigger dome; leave a slim rim for cardinal labels.
-  // Phones stay slightly smaller so the bottom dock doesn't clip the horizon.
-  let factor = 0.58
-  if (minSide < 520) factor = 0.5
-  else if (minSide < 820) factor = 0.56
-  else if (minSide >= 1100) factor = 0.64
-  return minSide * factor
+  // Keep the full horizon circle + N/S/E/W labels on screen.
+  const labelPad = 28
+  let factor = 0.44
+  if (minSide < 520) factor = 0.4
+  else if (minSide < 820) factor = 0.42
+  else if (minSide >= 1100) factor = 0.46
+
+  const desired = minSide * factor
+  const maxFit = minSide / 2 - labelPad
+  return Math.max(72, Math.min(desired, maxFit))
 }
 
 /** Stereographic-ish projection of alt/az onto a circular sky dome. */
