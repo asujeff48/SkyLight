@@ -548,11 +548,18 @@ export default function App() {
         </div>
         <h1>
           The sky above <span className="place-name">{location.label}</span>
-          <span className="hero-moon-phase" aria-label={`Moon phase: ${moonPhase}`}>
-            {' '}
-            · {moonPhase}
-          </span>
         </h1>
+        <p
+          className="hero-moon-phase"
+          aria-live="polite"
+          aria-label={`Moon phase: ${moonPhase.short}, ${moonPhase.technical}`}
+        >
+          <span className="hero-moon-phase-label">Moon Phase</span>
+          <strong>
+            {moonPhase.short}
+            <span className="hero-moon-phase-technical"> · {moonPhase.technical}</span>
+          </strong>
+        </p>
         <p className="lede">
           Planets, stars, moon, and sun from this viewpoint — right now, or any moment you
           choose.

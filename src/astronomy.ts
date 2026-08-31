@@ -137,20 +137,27 @@ export function computeSkyObjects(
   return objects
 }
 
+export type MoonPhaseLabel = {
+  /** Plain English: New, Crescent, Quarter, Gibbous, Full */
+  short: string
+  /** Technical: New Moon, Waxing Crescent, First Quarter, … */
+  technical: string
+}
+
 /**
- * Classic moon-phase name for a given instant (same everywhere on Earth).
+ * Classic moon-phase names for a given instant (same everywhere on Earth).
  * Uses Sun–Moon elongation: 0° new, 90° first quarter, 180° full, 270° last quarter.
  */
-export function moonPhaseName(when: Date): string {
+export function moonPhaseName(when: Date): MoonPhaseLabel {
   const lon = ((MoonPhase(when) % 360) + 360) % 360
-  if (lon < 22.5 || lon >= 337.5) return 'New Moon'
-  if (lon < 67.5) return 'Waxing Crescent'
-  if (lon < 112.5) return 'First Quarter'
-  if (lon < 157.5) return 'Waxing Gibbous'
-  if (lon < 202.5) return 'Full Moon'
-  if (lon < 247.5) return 'Waning Gibbous'
-  if (lon < 292.5) return 'Last Quarter'
-  return 'Waning Crescent'
+  if (lon < 22.5 || lon >= 337.5) return { short: 'New', technical: 'New Moon' }
+  if (lon < 67.5) return { short: 'Crescent', technical: 'Waxing Crescent' }
+  if (lon < 112.5) return { short: 'Quarter', technical: 'First Quarter' }
+  if (lon < 157.5) return { short: 'Gibbous', technical: 'Waxing Gibbous' }
+  if (lon < 202.5) return { short: 'Full', technical: 'Full Moon' }
+  if (lon < 247.5) return { short: 'Gibbous', technical: 'Waning Gibbous' }
+  if (lon < 292.5) return { short: 'Quarter', technical: 'Last Quarter' }
+  return { short: 'Crescent', technical: 'Waning Crescent' }
 }
 
 /** Radius of the zenith-centered sky dome in canvas pixels. */
