@@ -142,6 +142,8 @@ export type MoonPhaseLabel = {
   short: string
   /** Technical: New Moon, Waxing Crescent, First Quarter, … */
   technical: string
+  /** Sun–Moon elongation in degrees: 0 new, 90 first quarter, 180 full, 270 last quarter */
+  elongation: number
 }
 
 /**
@@ -149,15 +151,29 @@ export type MoonPhaseLabel = {
  * Uses Sun–Moon elongation: 0° new, 90° first quarter, 180° full, 270° last quarter.
  */
 export function moonPhaseName(when: Date): MoonPhaseLabel {
-  const lon = ((MoonPhase(when) % 360) + 360) % 360
-  if (lon < 22.5 || lon >= 337.5) return { short: 'New', technical: 'New Moon' }
-  if (lon < 67.5) return { short: 'Crescent', technical: 'Waxing Crescent' }
-  if (lon < 112.5) return { short: 'Quarter', technical: 'First Quarter' }
-  if (lon < 157.5) return { short: 'Gibbous', technical: 'Waxing Gibbous' }
-  if (lon < 202.5) return { short: 'Full', technical: 'Full Moon' }
-  if (lon < 247.5) return { short: 'Gibbous', technical: 'Waning Gibbous' }
-  if (lon < 292.5) return { short: 'Quarter', technical: 'Last Quarter' }
-  return { short: 'Crescent', technical: 'Waning Crescent' }
+  const elongation = ((MoonPhase(when) % 360) + 360) % 360
+  if (elongation < 22.5 || elongation >= 337.5) {
+    return { short: 'New', technical: 'New Moon', elongation }
+  }
+  if (elongation < 67.5) {
+    return { short: 'Crescent', technical: 'Waxing Crescent', elongation }
+  }
+  if (elongation < 112.5) {
+    return { short: 'Quarter', technical: 'First Quarter', elongation }
+  }
+  if (elongation < 157.5) {
+    return { short: 'Gibbous', technical: 'Waxing Gibbous', elongation }
+  }
+  if (elongation < 202.5) {
+    return { short: 'Full', technical: 'Full Moon', elongation }
+  }
+  if (elongation < 247.5) {
+    return { short: 'Gibbous', technical: 'Waning Gibbous', elongation }
+  }
+  if (elongation < 292.5) {
+    return { short: 'Quarter', technical: 'Last Quarter', elongation }
+  }
+  return { short: 'Crescent', technical: 'Waning Crescent', elongation }
 }
 
 /** Radius of the zenith-centered sky dome in canvas pixels. */

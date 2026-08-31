@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { computeSkyObjects, formatCoords, formatSunTimesSummary, moonPhaseName } from './astronomy'
+import { MoonPhaseIcon } from './components/MoonPhaseIcon'
 import { SkyCanvas } from './components/SkyCanvas'
 import { LocationPanel } from './components/LocationPanel'
 import { reverseGeocodeLabel } from './geocode'
@@ -554,6 +555,11 @@ export default function App() {
           aria-live="polite"
           aria-label={`Moon phase: ${moonPhase.short}, ${moonPhase.technical}`}
         >
+          <MoonPhaseIcon
+            className="hero-moon-phase-icon"
+            elongation={moonPhase.elongation}
+            size={20}
+          />
           <span className="hero-moon-phase-label">Moon Phase</span>
           <strong>
             {moonPhase.short}
