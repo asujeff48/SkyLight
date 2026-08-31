@@ -4,6 +4,7 @@ import {
   Horizon,
   Illumination,
   MakeTime,
+  MoonPhase,
   Observer,
   SearchRiseSet,
   type AstroTime,
@@ -134,6 +135,22 @@ export function computeSkyObjects(
   }
 
   return objects
+}
+
+/**
+ * Classic moon-phase name for a given instant (same everywhere on Earth).
+ * Uses Sun–Moon elongation: 0° new, 90° first quarter, 180° full, 270° last quarter.
+ */
+export function moonPhaseName(when: Date): string {
+  const lon = ((MoonPhase(when) % 360) + 360) % 360
+  if (lon < 22.5 || lon >= 337.5) return 'New Moon'
+  if (lon < 67.5) return 'Waxing Crescent'
+  if (lon < 112.5) return 'First Quarter'
+  if (lon < 157.5) return 'Waxing Gibbous'
+  if (lon < 202.5) return 'Full Moon'
+  if (lon < 247.5) return 'Waning Gibbous'
+  if (lon < 292.5) return 'Last Quarter'
+  return 'Waning Crescent'
 }
 
 /** Radius of the zenith-centered sky dome in canvas pixels. */

@@ -260,6 +260,13 @@ select {
   font-weight: 600;
 }
 
+.hero h1 .hero-moon-phase {
+  color: rgba(215, 224, 239, 0.72);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
 .lede {
   margin: 0.75rem 0 0;
   max-width: 28rem;

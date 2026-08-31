@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { computeSkyObjects, formatCoords, formatSunTimesSummary } from './astronomy'
+import { computeSkyObjects, formatCoords, formatSunTimesSummary, moonPhaseName } from './astronomy'
 import { SkyCanvas } from './components/SkyCanvas'
 import { LocationPanel } from './components/LocationPanel'
 import { reverseGeocodeLabel } from './geocode'
@@ -233,6 +233,7 @@ export default function App() {
   const sun = objects.find((o) => o.kind === 'sun')
   const moon = objects.find((o) => o.kind === 'moon')
   const iss = objects.find((o) => o.kind === 'iss')
+  const moonPhase = useMemo(() => moonPhaseName(displayWhen), [displayWhen])
 
   // Next forecast for the selected place, from wall clock (not motion scrub frames).
   // `tick` refreshes the forecast on the live-sky interval.
@@ -547,6 +548,10 @@ export default function App() {
         </div>
         <h1>
           The sky above <span className="place-name">{location.label}</span>
+          <span className="hero-moon-phase" aria-label={`Moon phase: ${moonPhase}`}>
+            {' '}
+            · {moonPhase}
+          </span>
         </h1>
         <p className="lede">
           Planets, stars, moon, and sun from this viewpoint — right now, or any moment you
