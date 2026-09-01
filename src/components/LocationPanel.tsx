@@ -315,7 +315,6 @@ export function LocationPanel({
               className={`filter-btn${motionSpeed === option.id ? ' active' : ''}`}
               aria-pressed={motionSpeed === option.id}
               title={option.hint}
-              disabled={issPassChoiceOpen && !option.isPassAction}
               onClick={() => {
                 if (option.isPassAction) onLastIssPass()
                 else onMotionSpeedChange(option.id)

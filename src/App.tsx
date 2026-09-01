@@ -275,9 +275,22 @@ export default function App() {
       : null
 
   const changeMotionSpeed = (speed: MotionSpeedId) => {
-    if (issPassSession) return
     setIssPassMessage(null)
     setIssPassMessageIsError(false)
+
+    // Choosing Fast / Normal / Slow exits ISS pass playback or the finished-pass prompt.
+    if (issPassSession) {
+      const { previousWhen, previousMotionOn } = issPassSession
+      setIssPassSession(null)
+      setIssPassChoiceOpen(false)
+      setMotionProgress(0)
+      setWhen(previousWhen)
+      setMotionSpeed(speed)
+      setMotionOn(previousMotionOn)
+      setSelectedId(null)
+      return
+    }
+
     setMotionSpeed(speed)
   }
 
