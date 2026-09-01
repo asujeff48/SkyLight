@@ -260,13 +260,17 @@ select {
   font-weight: 600;
 }
 
+.hero-moon-phase-block {
+  margin: 0.45rem 0 0;
+  max-width: min(100%, 36rem);
+}
+
 .hero-moon-phase {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem 0.55rem;
-  margin: 0.45rem 0 0;
-  max-width: min(100%, 36rem);
+  margin: 0;
 }
 
 .hero-moon-phase-icon {
@@ -293,6 +297,13 @@ select {
 .hero-moon-phase-technical {
   font-weight: 500;
   color: rgba(215, 224, 239, 0.72);
+}
+
+.hero-moon-phase-note {
+  margin: 0.25rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: rgba(215, 224, 239, 0.58);
 }
 
 .lede {

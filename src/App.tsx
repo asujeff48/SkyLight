@@ -550,22 +550,29 @@ export default function App() {
         <h1>
           The sky above <span className="place-name">{location.label}</span>
         </h1>
-        <p
-          className="hero-moon-phase"
-          aria-live="polite"
-          aria-label={`Moon phase: ${moonPhase.short}, ${moonPhase.technical}`}
-        >
-          <MoonPhaseIcon
-            className="hero-moon-phase-icon"
-            elongation={moonPhase.elongation}
-            size={20}
-          />
-          <span className="hero-moon-phase-label">Moon Phase</span>
-          <strong>
-            {moonPhase.short}
-            <span className="hero-moon-phase-technical"> · {moonPhase.technical}</span>
-          </strong>
-        </p>
+        <div className="hero-moon-phase-block">
+          <p
+            className="hero-moon-phase"
+            aria-live="polite"
+            aria-label={`Moon phase: ${moonPhase.short}, ${moonPhase.technical}`}
+          >
+            <MoonPhaseIcon
+              className="hero-moon-phase-icon"
+              elongation={moonPhase.elongation}
+              size={20}
+            />
+            <span className="hero-moon-phase-label">Moon Phase</span>
+            <strong>
+              {moonPhase.short}
+              <span className="hero-moon-phase-technical"> · {moonPhase.technical}</span>
+            </strong>
+          </p>
+          {moonPhase.short === 'Gibbous' && (
+            <p className="hero-moon-phase-note">
+              Gibbous means more than half lit, but not yet full.
+            </p>
+          )}
+        </div>
         <p className="lede">
           Planets, stars, moon, and sun from this viewpoint — right now, or any moment you
           choose.
