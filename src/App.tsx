@@ -102,6 +102,7 @@ export default function App() {
   const [issPassSession, setIssPassSession] = useState<IssPassSession | null>(null)
   const [issPassChoiceOpen, setIssPassChoiceOpen] = useState(false)
   const motionProgressRef = useRef(0)
+  const hudRef = useRef<HTMLElement | null>(null)
   // Mobile: drag the controls sheet downward to push it out of the way.
   const [sheetDragY, setSheetDragY] = useState(0)
   const [sheetDragging, setSheetDragging] = useState(false)
@@ -135,6 +136,14 @@ export default function App() {
   useEffect(() => {
     motionProgressRef.current = motionProgress
   }, [motionProgress])
+
+  const scrollHudToTop = () => {
+    const hud = hudRef.current
+    if (!hud) return
+    requestAnimationFrame(() => {
+      hud.scrollTo({ top: 0, behavior: 'auto' })
+    })
+  }
 
   // Keep "live" sky gently updating when viewing "now" (paused during motion)
   useEffect(() => {
@@ -183,6 +192,7 @@ export default function App() {
               )
             }
             setIssPassMessageIsError(false)
+            scrollHudToTop()
             return
           }
         } else {
@@ -329,6 +339,7 @@ export default function App() {
       `Playing last pass — ${formatIssPassSummary(window.rise, window.set, window.peakRangeKm, location.timeZone)}`,
     )
     setIssPassMessageIsError(false)
+    scrollHudToTop()
   }
 
   const repeatIssPass = () => {
@@ -369,6 +380,7 @@ export default function App() {
           )
         }
         setIssPassMessageIsError(false)
+        scrollHudToTop()
       } else if (issPassChoiceOpen) {
         repeatIssPass()
       } else {
@@ -644,6 +656,7 @@ export default function App() {
       )}
 
       <aside
+        ref={hudRef}
         className={`hud${controlsOpen ? ' is-open' : ''}${sheetDragging ? ' is-dragging' : ''}`}
         hidden={isMobile && !controlsOpen}
         style={

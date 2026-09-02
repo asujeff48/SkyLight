@@ -126,151 +126,153 @@ export function LocationPanel({
 
   return (
     <div className={`panel${hidePlaceHeader ? ' panel-compact' : ''}`}>
-      {!hidePlaceHeader && (
-        <header className="place-header" aria-live="polite">
-          <p className="place-kicker">Viewing</p>
-          <h2 className="place-title">{location.label}</h2>
-          <p className="place-meta">
-            <span>{formatCoords(location)}</span>
-            <span className="place-meta-sep" aria-hidden="true">
-              ·
-            </span>
-            <span>{formatSunTimesSummary(location, when)}</span>
-          </p>
-        </header>
-      )}
+      <div className="panel-pinned">
+        {!hidePlaceHeader && (
+          <header className="place-header" aria-live="polite">
+            <p className="place-kicker">Viewing</p>
+            <h2 className="place-title">{location.label}</h2>
+            <p className="place-meta">
+              <span>{formatCoords(location)}</span>
+              <span className="place-meta-sep" aria-hidden="true">
+                ·
+              </span>
+              <span>{formatSunTimesSummary(location, when)}</span>
+            </p>
+          </header>
+        )}
 
-      <div className="place-actions">
-        <button
-          type="button"
-          className="btn ghost place-action"
-          onClick={onUseMyLocation}
-          disabled={locating}
-          title="Detect your current location"
-        >
-          {locating ? 'Finding…' : 'Near me'}
-        </button>
-        <button
-          type="button"
-          className={`btn place-action${changingPlace ? ' ghost' : ''}`}
-          aria-expanded={changingPlace}
-          aria-controls="place-search"
-          onClick={() => {
-            if (changingPlace) closeSearch()
-            else setChangingPlace(true)
-          }}
-        >
-          {changingPlace ? 'Cancel' : 'Change place'}
-        </button>
-      </div>
+        <div className="place-actions">
+          <button
+            type="button"
+            className="btn ghost place-action"
+            onClick={onUseMyLocation}
+            disabled={locating}
+            title="Detect your current location"
+          >
+            {locating ? 'Finding…' : 'Near me'}
+          </button>
+          <button
+            type="button"
+            className={`btn place-action${changingPlace ? ' ghost' : ''}`}
+            aria-expanded={changingPlace}
+            aria-controls="place-search"
+            onClick={() => {
+              if (changingPlace) closeSearch()
+              else setChangingPlace(true)
+            }}
+          >
+            {changingPlace ? 'Cancel' : 'Change place'}
+          </button>
+        </div>
 
-      {changingPlace && (
-        <div id="place-search" className="place-search">
-          <div className="panel-row">
-            <label className="field grow">
-              <span>Search cities</span>
-              <input
-                ref={searchRef}
-                type="search"
-                name="city"
-                autoComplete="address-level2"
-                placeholder="e.g. Chicago, Mumbai, Cairo"
-                value={cityQuery}
-                onChange={(e) => {
-                  setCityQuery(e.target.value)
-                  setSearchError(null)
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    void lookUpCity()
-                  }
-                  if (e.key === 'Escape') {
-                    e.preventDefault()
-                    closeSearch()
-                  }
-                }}
-              />
-            </label>
-            <button
-              type="button"
-              className="btn ghost"
-              onClick={() => void lookUpCity()}
-              disabled={searching}
-            >
-              {searching ? 'Finding…' : 'Find'}
-            </button>
+        {changingPlace && (
+          <div id="place-search" className="place-search">
+            <div className="panel-row">
+              <label className="field grow">
+                <span>Search cities</span>
+                <input
+                  ref={searchRef}
+                  type="search"
+                  name="city"
+                  autoComplete="address-level2"
+                  placeholder="e.g. Chicago, Mumbai, Cairo"
+                  value={cityQuery}
+                  onChange={(e) => {
+                    setCityQuery(e.target.value)
+                    setSearchError(null)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      void lookUpCity()
+                    }
+                    if (e.key === 'Escape') {
+                      e.preventDefault()
+                      closeSearch()
+                    }
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => void lookUpCity()}
+                disabled={searching}
+              >
+                {searching ? 'Finding…' : 'Find'}
+              </button>
+            </div>
+
+            {searchError && <p className="error">{searchError}</p>}
+
+            {matches.length > 0 && (
+              <>
+                <p className="place-search-hint">
+                  Tap View sky on a result to switch the map to that place.
+                </p>
+                <ul className="city-results" role="listbox" aria-label="City matches">
+                  {matches.map((city) => (
+                    <li key={city.id}>
+                      <button
+                        type="button"
+                        className="city-result"
+                        onClick={() => pickCity(city)}
+                      >
+                        <span className="city-result-text">
+                          <span className="city-result-name">{city.label}</span>
+                          <span className="city-result-detail">{city.detail}</span>
+                        </span>
+                        <span className="city-result-go">View sky</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
+        )}
 
-          {searchError && <p className="error">{searchError}</p>}
+        <div className="panel-row">
+          <label className="field grow">
+            <span>Date & time</span>
+            <input
+              type="datetime-local"
+              value={toLocalInputValue(when)}
+              onChange={(e) => {
+                const next = new Date(e.target.value)
+                if (!Number.isNaN(next.getTime())) onWhenChange(next)
+              }}
+            />
+          </label>
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => onWhenChange(new Date())}
+          >
+            Now
+          </button>
+        </div>
 
-          {matches.length > 0 && (
-            <>
-              <p className="place-search-hint">
-                Tap View sky on a result to switch the map to that place.
-              </p>
-              <ul className="city-results" role="listbox" aria-label="City matches">
-                {matches.map((city) => (
-                  <li key={city.id}>
-                    <button
-                      type="button"
-                      className="city-result"
-                      onClick={() => pickCity(city)}
-                    >
-                      <span className="city-result-text">
-                        <span className="city-result-name">{city.label}</span>
-                        <span className="city-result-detail">{city.detail}</span>
-                      </span>
-                      <span className="city-result-go">View sky</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </>
+        <div className="panel-row motion-row">
+          <button
+            type="button"
+            className={`btn motion-btn${motionOn ? ' active' : ' ghost'}`}
+            aria-pressed={motionOn}
+            onClick={onToggleMotion}
+            disabled={issPassChoiceOpen}
+          >
+            {issPassChoiceOpen
+              ? 'ISS pass finished'
+              : motionOn
+                ? 'Stop motion'
+                : 'Play last 6 hours'}
+          </button>
+          {motionStatus && (
+            <p className="motion-status" role="status">
+              {motionStatus}
+            </p>
           )}
         </div>
-      )}
-
-      <div className="panel-row">
-        <label className="field grow">
-          <span>Date & time</span>
-          <input
-            type="datetime-local"
-            value={toLocalInputValue(when)}
-            onChange={(e) => {
-              const next = new Date(e.target.value)
-              if (!Number.isNaN(next.getTime())) onWhenChange(next)
-            }}
-          />
-        </label>
-        <button
-          type="button"
-          className="btn ghost"
-          onClick={() => onWhenChange(new Date())}
-        >
-          Now
-        </button>
-      </div>
-
-      <div className="panel-row motion-row">
-        <button
-          type="button"
-          className={`btn motion-btn${motionOn ? ' active' : ' ghost'}`}
-          aria-pressed={motionOn}
-          onClick={onToggleMotion}
-          disabled={issPassChoiceOpen}
-        >
-          {issPassChoiceOpen
-            ? 'ISS pass finished'
-            : motionOn
-              ? 'Stop motion'
-              : 'Play last 6 hours'}
-        </button>
-        {motionStatus && (
-          <p className="motion-status" role="status">
-            {motionStatus}
-          </p>
-        )}
       </div>
 
       {nextIssPassSummary && (

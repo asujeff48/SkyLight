@@ -319,10 +319,15 @@ select {
   right: clamp(0.75rem, 3vw, 1.75rem);
   bottom: clamp(0.75rem, 3vw, 1.75rem);
   width: min(100% - 1.5rem, var(--hud-width));
+  /* Stay bottom-anchored, but never grow off the top of the viewport. */
+  max-height: calc(100dvh - 2 * clamp(0.75rem, 3vw, 1.75rem));
   z-index: 3;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   animation: rise 1s 0.15s ease-out both;
 }
 
@@ -332,6 +337,28 @@ select {
   border: 1px solid var(--line);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+}
+
+/* Keep place + core controls visible while the HUD scrolls (ISS banners, etc.). */
+.panel-pinned {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: -0.65rem -0.7rem 0.55rem;
+  padding: 0.65rem 0.7rem 0.55rem;
+  background: rgba(8, 14, 28, 0.94);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+.panel-pinned .place-header {
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.panel-pinned .panel-row:last-child {
+  margin-bottom: 0;
 }
 
 .place-header {
@@ -1142,6 +1169,11 @@ select {
   }
 
   .panel-compact {
+    padding-top: 0.65rem;
+  }
+
+  .panel-compact .panel-pinned {
+    margin-top: -0.65rem;
     padding-top: 0.65rem;
   }
 
