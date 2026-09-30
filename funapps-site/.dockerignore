@@ -1,0 +1,7 @@
+# FunApps hub landing site (funapps.net)
+#
+# Deploy as its own Railway service with Root Directory = funapps-site
+# (or copy this folder into a dedicated asujeff48/funapps repo).
+
+.DS_Store
+*.log

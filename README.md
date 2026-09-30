@@ -40,6 +40,13 @@ Bright-star RA/Dec/magnitude live in `src/data/stars.ts`. Positions are computed
 
 https://skylight-production-4337.up.railway.app
 
+## FunApps.net
+
+Landing pages for Sky Above, Quakers, and Bigfoot live in [`funapps-site/`](./funapps-site/).
+That hub is meant to be deployed as its own Railway service on **funapps.net**.
+The apps themselves stay on Railway — you only add custom domains (see
+[`funapps-site/README.md`](./funapps-site/README.md)).
+
 ## Source of truth & deploy
 
 There is **one source of code** and **one user-facing deploy**:

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Quakers — free live U.S. earthquake map from USGS data. Just for fun."
+    />
+    <title>Quakers · FunApps</title>
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Syne:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="sky" aria-hidden="true"></div>
+    <div class="wrap">
+      <header class="site-header">
+        <a class="brand" href="/">Fun<span>Apps</span></a>
+        <nav class="nav" aria-label="Apps">
+          <a href="/skyabove/">Sky Above</a>
+          <a href="/quakers/" aria-current="page">Quakers</a>
+          <a href="/bigfoot/">Bigfoot</a>
+        </nav>
+      </header>
+
+      <section class="app-hero reveal">
+        <p class="app-kicker">FunApps presents</p>
+        <h1>Quakers</h1>
+        <p class="lede">
+          A live map of reported earthquakes across the United States.
+        </p>
+        <div class="cta-row">
+          <a
+            class="btn btn-primary"
+            href="https://quakers-production.up.railway.app"
+            data-launch="quakers"
+          >
+            Launch Quakers
+          </a>
+          <a class="btn btn-ghost" href="/">All FunApps</a>
+        </div>
+        <p class="free-badge">Free to use · Just for fun</p>
+      </section>
+
+      <section class="section reveal reveal-delay">
+        <div class="prose">
+          <p>
+            Quakers pulls public earthquake reports from the USGS catalog and plots
+            them on a U.S. map. Markers scale and color by magnitude. Pick a
+            timeframe — from the last day to the last month — then tap a quake for
+            place, time, and strength.
+          </p>
+          <p>
+            Built to make the ground’s chatter easy to browse, not to replace official
+            alerts. Free, no signup, just for curiosity.
+          </p>
+          <ul class="feature-list">
+            <li>USGS-powered markers across the U.S., Alaska, Hawaii, and Puerto Rico</li>
+            <li>Timeframes: 24 hours, 48 hours, 1 week, 1 month</li>
+            <li>Clusters at wide zoom; details when you click a quake</li>
+          </ul>
+        </div>
+      </section>
+
+      <footer class="site-footer">
+        <p>
+          Part of <strong>FunApps.net</strong> — free little apps, just for fun.
+        </p>
+      </footer>
+    </div>
+    <script src="/assets/config.js"></script>
+  </body>
+</html>
