@@ -566,7 +566,15 @@ export default function App() {
 
       <header className="hero">
         <div className="hero-top">
-          <p className="brand">SkyAbove</p>
+          <div className="brand-stack">
+            <a
+              className="funapps-home"
+              href="https://skylight-production-e449.up.railway.app"
+            >
+              ← FunApps.net
+            </a>
+            <p className="brand">SkyAbove</p>
+          </div>
           <p className="hero-when" aria-live="polite">
             <span className="hero-when-label">Date & time</span>
             <strong>{formatViewWhen(displayWhen, location.timeZone)}</strong>

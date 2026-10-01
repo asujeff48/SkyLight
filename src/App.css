@@ -207,6 +207,28 @@ select {
   margin-bottom: 0.35rem;
 }
 
+.brand-stack {
+  min-width: 0;
+}
+
+.funapps-home {
+  pointer-events: auto;
+  display: inline-block;
+  margin: 0 0 0.4rem;
+  font-family: var(--font-body, inherit);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  color: rgba(244, 240, 230, 0.72);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.35);
+  transition: color 160ms ease;
+}
+
+.funapps-home:hover {
+  color: #f4f0e6;
+}
+
 .brand {
   margin: 0;
   font-family: var(--font-display);
