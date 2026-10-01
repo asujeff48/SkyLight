@@ -20,7 +20,7 @@ Current Railway URLs (used by Launch buttons until custom domains are live):
 
 - Sky Above: https://skylight-production-4337.up.railway.app
 - Quakers: https://quakers-production.up.railway.app
-- Bigfoot: https://bigfoot-production.up.railway.app
+- Bigfoot: https://bigfoot-production-6a2c.up.railway.app
 
 ## 1. Deploy this hub on Railway
 

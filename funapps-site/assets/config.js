@@ -10,7 +10,7 @@
 window.FUNAPPS_LAUNCH = {
   skyabove: 'https://skylight-production-4337.up.railway.app',
   quakers: 'https://quakers-production.up.railway.app',
-  bigfoot: 'https://bigfoot-production.up.railway.app',
+  bigfoot: 'https://bigfoot-production-6a2c.up.railway.app',
 }
 
 document.querySelectorAll('[data-launch]').forEach((el) => {
