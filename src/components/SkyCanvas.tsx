@@ -72,13 +72,15 @@ function shouldShowLabel(
   obj: SkyObject,
   selected: boolean,
   emphasizeZodiac: boolean,
+  compact = false,
 ): boolean {
   if (!obj.name) return false
   if (selected) return true
   if (obj.kind === 'sun' || obj.kind === 'moon') return true
   if (obj.kind === 'planet' || obj.kind === 'iss') return true
   if (emphasizeZodiac && obj.zodiacSign) return true
-  return obj.magnitude < 2.0
+  // Phones: fewer star names so the dome stays readable.
+  return obj.magnitude < (compact ? 1.15 : 2.0)
 }
 
 function drawIss(
@@ -167,6 +169,36 @@ function drawLabel(
 
 function isCoarsePointer(): boolean {
   return typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+}
+
+/** Rough label box used to drop overlapping names on small screens. */
+function labelFootprint(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  fontSize: number,
+  emphasis: boolean,
+): { left: number; right: number; top: number; bottom: number } {
+  ctx.save()
+  ctx.font = `${emphasis ? '600' : '500'} ${fontSize}px Sora, sans-serif`
+  const w = ctx.measureText(text).width
+  ctx.restore()
+  const padX = 4
+  const padY = fontSize * 0.65
+  return {
+    left: x - padX,
+    right: x + w + padX,
+    top: y - padY,
+    bottom: y + padY,
+  }
+}
+
+function boxesOverlap(
+  a: { left: number; right: number; top: number; bottom: number },
+  b: { left: number; right: number; top: number; bottom: number },
+): boolean {
+  return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom)
 }
 
 type ProjectedStar = { x: number; y: number; visible: boolean }
@@ -349,12 +381,21 @@ export function SkyCanvas({
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
-      const nextWidth = canvas.clientWidth
-      const nextHeight = canvas.clientHeight
+      const nextWidth = Math.max(0, Math.round(canvas.clientWidth))
+      const nextHeight = Math.max(0, Math.round(canvas.clientHeight))
       // Avoid clearing/resizing the buffer when size hasn't changed (motion used to
       // remount this effect every frame and shrink/flicker the dome).
-      if (nextWidth === width && nextHeight === height && canvas.width > 0) {
+      if (
+        nextWidth === width &&
+        nextHeight === height &&
+        canvas.width === Math.floor(width * dpr) &&
+        canvas.height === Math.floor(height * dpr)
+      ) {
         syncView(viewRef.current, width, height)
+        return
+      }
+      // Layout can briefly report 0×0 on mobile before flex settles — keep prior buffer.
+      if (nextWidth < 32 || nextHeight < 32) {
         return
       }
       width = nextWidth
@@ -367,6 +408,18 @@ export function SkyCanvas({
 
     const draw = () => {
       frame += 1
+      // Mobile flex / URL-bar / dock changes often skip window "resize". Re-sync
+      // the bitmap to CSS size every frame so labels never stretch huge.
+      const layoutW = Math.round(canvas.clientWidth)
+      const layoutH = Math.round(canvas.clientHeight)
+      if (layoutW !== width || layoutH !== height || canvas.width === 0) {
+        resize()
+      }
+      if (width < 32 || height < 32) {
+        raf = requestAnimationFrame(draw)
+        return
+      }
+
       const view = viewRef.current
       const selectedIdNow = selectedIdRef.current
       const sun = objectsRef.current.find((o) => o.kind === 'sun')
@@ -448,8 +501,9 @@ export function SkyCanvas({
       }
 
       const coarse = isCoarsePointer()
-      const labelSize = coarse ? 13 : 11
-      const sizeBoost = coarse ? 1.25 : 1
+      const compact = coarse || Math.min(width, height) < 640
+      const labelSize = compact ? 11 : coarse ? 13 : 11
+      const sizeBoost = compact ? 1.1 : coarse ? 1.25 : 1
 
       for (const obj of sorted) {
         if (obj.kind === 'iss' && obj.trail?.length) {
@@ -517,7 +571,10 @@ export function SkyCanvas({
           ctx.stroke()
         }
 
-        if (obj.name && shouldShowLabel(obj, selected, emphasizeZodiacRef.current)) {
+        if (
+          obj.name &&
+          shouldShowLabel(obj, selected, emphasizeZodiacRef.current, compact)
+        ) {
           const emphasis =
             selected ||
             obj.kind === 'sun' ||
@@ -539,7 +596,21 @@ export function SkyCanvas({
         }
       }
 
+      // Priority: planets / sun / moon / ISS / selected first (already sorted by mag,
+      // but emphasis labels win conflicts on compact screens).
+      labels.sort((a, b) => Number(b.emphasis) - Number(a.emphasis))
+      const placed: { left: number; right: number; top: number; bottom: number }[] = []
       for (const label of labels) {
+        const box = labelFootprint(
+          ctx,
+          label.text,
+          label.x,
+          label.y,
+          labelSize,
+          label.emphasis,
+        )
+        if (compact && placed.some((p) => boxesOverlap(p, box))) continue
+        placed.push(box)
         drawLabel(
           ctx,
           label.text,
@@ -559,10 +630,19 @@ export function SkyCanvas({
     resize()
     draw()
     window.addEventListener('resize', resize)
+    window.visualViewport?.addEventListener('resize', resize)
+    window.visualViewport?.addEventListener('scroll', resize)
+    const ro =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => resize()) : null
+    ro?.observe(canvas)
+    if (canvas.parentElement) ro?.observe(canvas.parentElement)
 
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', resize)
+      window.visualViewport?.removeEventListener('resize', resize)
+      window.visualViewport?.removeEventListener('scroll', resize)
+      ro?.disconnect()
     }
     // Keep this effect mounted across motion time updates — only restart if the
     // canvas node is replaced. Live values are read from refs each frame.
