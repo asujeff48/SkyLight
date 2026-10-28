@@ -72,15 +72,14 @@ function shouldShowLabel(
   obj: SkyObject,
   selected: boolean,
   emphasizeZodiac: boolean,
-  compact = false,
 ): boolean {
   if (!obj.name) return false
   if (selected) return true
   if (obj.kind === 'sun' || obj.kind === 'moon') return true
   if (obj.kind === 'planet' || obj.kind === 'iss') return true
   if (emphasizeZodiac && obj.zodiacSign) return true
-  // Phones: fewer star names so the dome stays readable.
-  return obj.magnitude < (compact ? 1.15 : 2.0)
+  // Same bright-star cutoff on phone and desktop (includes Polaris ~1.97).
+  return obj.magnitude < 2.0
 }
 
 function drawIss(
@@ -494,6 +493,7 @@ export function SkyCanvas({
         y: number
         emphasis: boolean
         color?: string
+        magnitude: number
       }[] = []
 
       if (emphasizeZodiacRef.current) {
@@ -571,10 +571,7 @@ export function SkyCanvas({
           ctx.stroke()
         }
 
-        if (
-          obj.name &&
-          shouldShowLabel(obj, selected, emphasizeZodiacRef.current, compact)
-        ) {
+        if (obj.name && shouldShowLabel(obj, selected, emphasizeZodiacRef.current)) {
           const emphasis =
             selected ||
             obj.kind === 'sun' ||
@@ -592,13 +589,17 @@ export function SkyCanvas({
             y,
             emphasis,
             color: obj.kind === 'iss' ? 'rgba(92, 220, 140, 0.98)' : undefined,
+            magnitude: obj.magnitude,
           })
         }
       }
 
-      // Priority: planets / sun / moon / ISS / selected first (already sorted by mag,
-      // but emphasis labels win conflicts on compact screens).
-      labels.sort((a, b) => Number(b.emphasis) - Number(a.emphasis))
+      // Keep major names (Polaris, etc.). On tight phones, only drop a label when it
+      // heavily overlaps a brighter/emphasized one already drawn.
+      labels.sort((a, b) => {
+        if (a.emphasis !== b.emphasis) return Number(b.emphasis) - Number(a.emphasis)
+        return a.magnitude - b.magnitude
+      })
       const placed: { left: number; right: number; top: number; bottom: number }[] = []
       for (const label of labels) {
         const box = labelFootprint(
@@ -609,7 +610,11 @@ export function SkyCanvas({
           labelSize,
           label.emphasis,
         )
-        if (compact && placed.some((p) => boxesOverlap(p, box))) continue
+        const crowded =
+          compact &&
+          Math.min(width, height) < 480 &&
+          placed.some((p) => boxesOverlap(p, box))
+        if (crowded && !label.emphasis) continue
         placed.push(box)
         drawLabel(
           ctx,
