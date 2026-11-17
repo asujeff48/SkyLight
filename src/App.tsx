@@ -784,10 +784,22 @@ export default function App() {
             </p>
           )}
           {skyFilter === 'zodiac' && (
-            <p className="status-line">
-              <span className="label">Showing</span>{' '}
-              <strong>Zodiac animals & stars</strong>
-            </p>
+            <>
+              <p className="status-line">
+                <span className="label">Showing</span>{' '}
+                <strong>Zodiac animals & stars</strong>
+              </p>
+              {iss && (
+                <p className="status-line">
+                  <span className="label">ISS</span>{' '}
+                  <strong>
+                    {issPassSummary
+                      ? `${iss.altitude.toFixed(0)}° up · Last pass — ${issPassSummary}`
+                      : `${iss.altitude.toFixed(0)}° up · Az ${iss.azimuth.toFixed(0)}°`}
+                  </strong>
+                </p>
+              )}
+            </>
           )}
         </div>
 

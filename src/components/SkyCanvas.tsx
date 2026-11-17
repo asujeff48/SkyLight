@@ -116,6 +116,47 @@ function drawIss(
   ctx.restore()
 }
 
+/** Station, recent trail, and label — drawn last so zodiac art cannot cover the pass. */
+function drawIssPass(
+  ctx: CanvasRenderingContext2D,
+  obj: SkyObject,
+  width: number,
+  height: number,
+  selected: boolean,
+  sizeBoost: number,
+  labelSize: number,
+  coarse: boolean,
+) {
+  if (obj.trail?.length) {
+    drawIssTrail(ctx, obj.trail, width, height)
+  }
+  const { x, y, visible } = projectToCanvas(obj.altitude, obj.azimuth, width, height)
+  if (!visible) return
+
+  const markerRadius = 7 * sizeBoost
+  drawIss(ctx, x, y, selected, sizeBoost)
+
+  if (selected) {
+    ctx.beginPath()
+    ctx.arc(x, y, coarse ? 18 : 14, 0, Math.PI * 2)
+    ctx.strokeStyle = 'rgba(230, 240, 255, 0.55)'
+    ctx.lineWidth = coarse ? 2 : 1
+    ctx.stroke()
+  }
+
+  if (obj.name) {
+    drawLabel(
+      ctx,
+      obj.name,
+      x + markerRadius + 6,
+      y,
+      true,
+      labelSize,
+      'rgba(92, 220, 140, 0.98)',
+    )
+  }
+}
+
 function drawIssTrail(
   ctx: CanvasRenderingContext2D,
   trail: { altitude: number; azimuth: number }[],
@@ -492,7 +533,6 @@ export function SkyCanvas({
         x: number
         y: number
         emphasis: boolean
-        color?: string
         magnitude: number
       }[] = []
 
@@ -506,12 +546,9 @@ export function SkyCanvas({
       const sizeBoost = compact ? 1.1 : coarse ? 1.25 : 1
 
       for (const obj of sorted) {
-        if (obj.kind === 'iss' && obj.trail?.length) {
-          drawIssTrail(ctx, obj.trail, width, height)
-        }
-      }
+        // Drawn after labels so the pass sits on top of zodiac figures and names.
+        if (obj.kind === 'iss') continue
 
-      for (const obj of sorted) {
         const { x, y, visible } = projectToCanvas(obj.altitude, obj.azimuth, width, height)
         if (!visible) continue
 
@@ -527,9 +564,6 @@ export function SkyCanvas({
         } else if (obj.kind === 'moon') {
           markerRadius = 14 * sizeBoost
           drawMoon(ctx, x, y, markerRadius, obj.phase ?? 0.5)
-        } else if (obj.kind === 'iss') {
-          markerRadius = 7 * sizeBoost
-          drawIss(ctx, x, y, selected, sizeBoost)
         } else if (obj.kind === 'planet') {
           markerRadius =
             (obj.magnitude < -1 ? 5.5 : obj.magnitude < 1 ? 4.2 : 3.2) * sizeBoost
@@ -577,7 +611,6 @@ export function SkyCanvas({
             obj.kind === 'sun' ||
             obj.kind === 'moon' ||
             obj.kind === 'planet' ||
-            obj.kind === 'iss' ||
             Boolean(emphasizeZodiacRef.current && obj.zodiacSign)
           const text =
             emphasizeZodiacRef.current && obj.zodiacSign
@@ -588,7 +621,6 @@ export function SkyCanvas({
             x: x + markerRadius + 6,
             y,
             emphasis,
-            color: obj.kind === 'iss' ? 'rgba(92, 220, 140, 0.98)' : undefined,
             magnitude: obj.magnitude,
           })
         }
@@ -616,14 +648,20 @@ export function SkyCanvas({
           placed.some((p) => boxesOverlap(p, box))
         if (crowded && !label.emphasis) continue
         placed.push(box)
-        drawLabel(
+        drawLabel(ctx, label.text, label.x, label.y, label.emphasis, labelSize)
+      }
+
+      for (const obj of sorted) {
+        if (obj.kind !== 'iss') continue
+        drawIssPass(
           ctx,
-          label.text,
-          label.x,
-          label.y,
-          label.emphasis,
+          obj,
+          width,
+          height,
+          obj.id === selectedIdNow,
+          sizeBoost,
           labelSize,
-          label.color,
+          coarse,
         )
       }
 
