@@ -50,7 +50,12 @@ export function matchesSkyFilter(
 ): boolean {
   if (filter === 'all') return true
   if (filter === 'stars') return object.kind === 'star'
-  if (filter === 'zodiac') return object.kind === 'star' && Boolean(object.zodiacSign)
+  // Zodiac Signs keeps constellation stars, plus the ISS pass overlay
+  // (station, trail, and label). The filter used to drop every non-zodiac
+  // body, so Last ISS Pass played in the controls and nothing was drawn.
+  if (filter === 'zodiac') {
+    return object.kind === 'iss' || (object.kind === 'star' && Boolean(object.zodiacSign))
+  }
   // Planets Only: solar-system planets (not Sun/Moon/ISS)
   return object.kind === 'planet'
 }
